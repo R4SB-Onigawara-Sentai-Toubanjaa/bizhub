@@ -1,147 +1,230 @@
-# 名刺交換アプリ DB設計
+# Database Design
 
-## 1. profiles（ユーザー情報）
+## 概要
+本アプリは、BLE または QR コードを用いたデジタル名刺交換アプリである。  
+DB設計では責務分離を重視し、以下の4テーブルで構成する。
 
-ユーザー自身のデジタル名刺情報を管理するテーブル。
-ログイン認証情報は Supabase の `auth.users` に保存し、本テーブルではプロフィール情報のみ管理する。
-
-| カラム名                | 型         | 制約                     | 説明         |
-| ------------------- | --------- | ---------------------- | ---------- |
-| id                  | UUID      | PK / FK(auth.users.id) | ユーザーID     |
-| name                | TEXT      | NOT NULL               | 氏名         |
-| company             | TEXT      | NULL                   | 所属         |
-| department          | TEXT      | NULL                   | 部署         |
-| position            | TEXT      | NULL                   | 役職         |
-| phone_number        | TEXT      | NULL                   | 電話番号       |
-| website             | TEXT      | NULL                   | Webサイト     |
-| sns_link            | TEXT      | NULL                   | SNS        |
-| profile_image_url   | TEXT      | NULL                   | アイコン       |
-| exchange_identifier | TEXT      | UNIQUE                 | BLE/QR交換ID |
-| created_at          | TIMESTAMP | NOT NULL               | 作成日時       |
-| updated_at          | TIMESTAMP | NOT NULL               | 更新日時       |
-
-### 型の説明
-
-| 型         | 説明            |
-| --------- | ------------- |
-| UUID      | 一意な識別子を管理する型  |
-| TEXT      | 可変長文字列を管理する型  |
-| TIMESTAMP | 日時情報を管理する型    |
-| NULL      | 値が未設定であることを許容 |
-
-### 補足
-
-* `id` は `auth.users.id` と紐づく
-* `exchange_identifier` は BLE / QR交換時の識別子
-* QRコードにはこのIDを埋め込む
+- `users`：アプリ利用者管理
+- `business_cards`：ユーザーの最新名刺管理
+- `contacts`：名刺交換関係管理
+- `business_card_versions`：名刺履歴管理
 
 ---
 
-## 2. business_cards（交換した名刺情報）
+# 1. users（ユーザー管理）
 
-交換した相手の名刺情報を保存するテーブル。
-交換時点の情報を保持するため、プロフィールのコピー（スナップショット）として保存する。
+## 役割
+アプリ利用者そのものを管理する。  
+認証は Supabase Auth を利用し、`auth.users.id` と同一IDを保持する。
 
-| カラム名              | 型         | 制約                         | 説明             |
-| ----------------- | --------- | -------------------------- | -------------- |
-| id                | UUID      | PK                         | 名刺ID           |
-| owner_profile_id  | UUID      | FK(profiles.id) / NOT NULL | 名刺所有者          |
-| profile_id        | UUID      | FK(profiles.id) / NULL     | 交換相手ユーザーID     |
-| name              | TEXT      | NOT NULL                   | 氏名             |
-| company           | TEXT      | NULL                       | 所属             |
-| department        | TEXT      | NULL                       | 部署             |
-| position          | TEXT      | NULL                       | 役職             |
-| phone_number      | TEXT      | NULL                       | 電話番号           |
-| website           | TEXT      | NULL                       | Webサイト         |
-| sns_link          | TEXT      | NULL                       | SNS            |
-| profile_image_url | TEXT      | NULL                       | アイコン           |
-| exchange_method   | TEXT      | NOT NULL                   | 交換方法（BLE / QR） |
-| created_at        | TIMESTAMP | NOT NULL                   | 保存日時           |
-| updated_at        | TIMESTAMP | NOT NULL                   | 更新日時           |
-
-### 型の説明
-
-| 型         | 説明            |
-| --------- | ------------- |
-| UUID      | 名刺情報を一意に識別する型 |
-| TEXT      | 名刺情報の文字列データ   |
-| TIMESTAMP | 名刺保存日時を保持     |
-
-### 補足
-
-* `owner_profile_id`
-
-  * 「誰が保持している名刺か」を管理
-* `profile_id`
-
-  * 相手がアプリ利用者の場合のみ紐づく
-* 相手が退会しても名刺を保持できるよう `NULL` 許容
-* 名刺情報は交換時点のスナップショットとして保存
+| カラム名 | データ型 | 制約・属性 | 役割 |
+|---|---|---|---|
+| id | UUID | Primary Key / Foreign Key (`auth.users.id`) | ユーザーID |
+| exchange_identifier | TEXT | UNIQUE | BLE / QR交換用識別子 |
+| created_at | TIMESTAMPTZ | Default: now() | 登録日時 |
 
 ---
 
-## 3. card_exchanges（名刺管理テーブル）
+# 2. business_cards（最新名刺管理）
 
-名刺交換履歴を管理するテーブル。
-「誰と」「いつ」「どの方法で交換したか」を記録する。
+## 役割
+ユーザーの最新の名刺情報を保持する。  
+1ユーザーにつき1枚のみ保持する。
 
-| カラム名             | 型         | 制約                               | 説明             |
-| ---------------- | --------- | -------------------------------- | -------------- |
-| id               | UUID      | PK                               | 交換履歴ID         |
-| profile_id       | UUID      | FK(profiles.id) / NOT NULL       | ユーザーID         |
-| business_card_id | UUID      | FK(business_cards.id) / NOT NULL | 名刺ID           |
-| exchanged_at     | TIMESTAMP | NOT NULL                         | 交換日時           |
-| exchange_method  | TEXT      | NOT NULL                         | 交換方法（BLE / QR） |
-| memo             | TEXT      | NULL                             | メモ             |
-| created_at       | TIMESTAMP | NOT NULL                         | 作成日時           |
-| updated_at       | TIMESTAMP | NOT NULL                         | 更新日時           |
-
-### 型の説明
-
-| 型         | 説明            |
-| --------- | ------------- |
-| UUID      | 交換履歴を一意に管理する型 |
-| TEXT      | メモや交換方式を保存する型 |
-| TIMESTAMP | 名刺交換日時を保持する型  |
-
-### 補足
-
-* `exchanged_at`
-
-  * 実際に交換した日時
-* 同じ相手と複数回交換しても履歴保持可能
-* `memo`
-
-  * 「展示会で交換」「営業担当」など記録可能
+| カラム名 | データ型 | 制約・属性 | 役割 |
+|---|---|---|---|
+| id | UUID | Primary Key | 名刺ID |
+| user_id | UUID | Foreign Key (`users.id`), UNIQUE | 名刺所有者 |
+| name | TEXT | NOT NULL | 氏名 |
+| company | TEXT | NULL | 会社名 |
+| department | TEXT | NULL | 部署 |
+| position | TEXT | NULL | 役職 |
+| email | TEXT | NULL | メールアドレス |
+| phone_number | TEXT | NULL | 電話番号 |
+| logo_path | TEXT | NULL | 会社ロゴ画像保存パス |
+| custom_fields | JSONB | Default: {} | カスタム項目 |
+| created_at | TIMESTAMPTZ | Default: now() | 作成日時 |
+| updated_at | TIMESTAMPTZ | Default: now() | 更新日時 |
 
 ---
 
-## 4. テーブル関係
+## custom_fields(JSONB)
 
-```text
-auth.users
-      │
-      │ 1:1
-      ▼
-profiles
-      │
-      ├── 1:N ── business_cards
-      │
-      └── 1:N ── card_exchanges
-                     │
-                     └── N:1 business_cards
+スロット固定型で保存する。
+
+```json
+{
+  "1": {
+    "label": "GitHub",
+    "value": "https://github.com/example",
+    "type": "url"
+  },
+  "2": null,
+  "3": {
+    "label": "趣味",
+    "value": "釣り",
+    "type": "text"
+  }
+}
 ```
 
-### 関係性
+### 説明
+- キー = 名刺上の表示スロット
+- `null` = 空スロット
+- 項目追加時もレイアウト崩れを防ぐ
 
-* **profiles : business_cards = 1 : N**
+---
 
-  * 1ユーザーは複数の名刺を持てる
+# 3. contacts（交換関係管理）
 
-* **profiles : card_exchanges = 1 : N**
+## 役割
+誰が誰の名刺を所持しているかを管理する。  
+交換イベントそのものを記録する。
 
-  * 1ユーザーは複数回交換できる
+| カラム名 | データ型 | 制約・属性 | 役割 |
+|---|---|---|---|
+| id | UUID | Primary Key | 交換ID |
+| owner_id | UUID | Foreign Key (`users.id`), INDEX | 名刺を所持するユーザー |
+| target_user_id | UUID | Foreign Key (`users.id`), INDEX | 交換相手 |
+| exchange_count | INTEGER | Default: 1 | 交換回数 |
+| first_exchanged_at | TIMESTAMPTZ | NOT NULL | 初回交換日時 |
+| last_exchanged_at | TIMESTAMPTZ | NOT NULL | 最終交換日時 |
+| latest_version_id | UUID | Foreign Key (`business_card_versions.id`) | 最新取得履歴 |
 
-* **business_cards : card_exchanges = 1 : N**
+### 制約
 
-  * 同じ相手と複数回交換可能
+```sql
+UNIQUE(owner_id, target_user_id)
+```
+
+### 補足
+同一相手との交換は1レコードで管理し、  
+再交換時に `exchange_count` を増加させる。
+
+---
+
+# 4. business_card_versions（名刺履歴管理）
+
+## 役割
+名刺更新時の過去データを保存する。  
+役職変更・部署変更・連絡先変更などに対応する。
+
+| カラム名 | データ型 | 制約・属性 | 役割 |
+|---|---|---|---|
+| id | UUID | Primary Key | 履歴ID |
+| business_card_id | UUID | Foreign Key (`business_cards.id`), INDEX | 元名刺 |
+| version_no | INTEGER | NOT NULL | バージョン番号 |
+| card_snapshot | JSONB | NOT NULL | 当時の名刺情報 |
+| created_at | TIMESTAMPTZ | Default: now() | 履歴作成日時 |
+
+---
+
+## card_snapshot(JSONB)
+
+```json
+{
+  "name": "田中 太郎",
+  "company": "ABC株式会社",
+  "department": "営業部",
+  "position": "主任",
+  "email": "tanaka@example.com",
+  "custom_fields": {
+    "1": {
+      "label": "GitHub",
+      "value": "https://github.com/example"
+    }
+  }
+}
+```
+
+---
+
+# ER図
+
+```text
+users
+ ├── business_cards (1:1)
+ ├── contacts.owner_id (1:N)
+ └── contacts.target_user_id (1:N)
+
+business_cards
+ └── business_card_versions (1:N)
+
+contacts
+ └── latest_version_id → business_card_versions
+```
+
+---
+
+# 責務分離
+
+| テーブル | 責務 |
+|---|---|
+| users | ユーザー管理 |
+| business_cards | 現在の名刺管理 |
+| contacts | 名刺交換関係管理 |
+| business_card_versions | 過去名刺履歴管理 |
+
+---
+
+# セキュリティ設計（RLS）
+
+## users
+- 参照：本人のみ or 最小限公開
+- 更新：本人のみ
+
+## business_cards
+参照可能：
+- 本人
+- 交換済みユーザー
+
+更新可能：
+- 本人のみ
+
+## contacts
+参照可能：
+- `owner_id = auth.uid()`
+
+他人の名刺フォルダは閲覧不可。
+
+## business_card_versions
+参照可能：
+- 本人
+- 交換済み相手のみ
+
+---
+
+# ストレージ設計
+
+画像は Supabase Storage を利用する。
+
+対象:
+- profile_image_path
+- logo_path
+
+制約:
+- MIME: image/jpeg, image/png, image/webp
+- 最大サイズ: 2MB
+- 推奨リサイズ: 幅800px
+- Private Bucket 推奨
+
+---
+
+# データフロー
+
+1. ユーザー登録  
+   → `users` 作成
+
+2. 名刺作成  
+   → `business_cards` 作成
+
+3. BLE / QRで交換  
+   → `contacts` 作成
+
+4. 名刺更新  
+   → 更新前データを `business_card_versions` に保存  
+   → `business_cards` 更新
+
+5. 再交換  
+   → `exchange_count` 更新  
+   → `latest_version_id` 更新
