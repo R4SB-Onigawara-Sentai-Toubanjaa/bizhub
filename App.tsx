@@ -1,6 +1,11 @@
 import React from 'react';
-import { ExchangeScreen } from './src/features/exchange/screens/ExchangeScreen';
+import { AuthProvider } from './src/features/auth/AuthContext';
+import { AppNavigator } from './src/navigation/AppNavigator';
 
 export default function App() {
-  return <ExchangeScreen />;
+  return (
+    <AuthProvider>
+      <AppNavigator />
+    </AuthProvider>
+  );
 }
