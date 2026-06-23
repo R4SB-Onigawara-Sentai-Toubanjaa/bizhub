@@ -2,37 +2,34 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../features/auth/AuthContext';
+import { RootStackParamList } from './types';
+
 import { LoginScreen } from '../features/auth/screens/LoginScreen';
 import { HomeScreen } from '../features/exchange/screens/HomeScreen';
 import { MyCardEditScreen } from '../features/my_card/screens/MyCardEditScreen';
+import { CameraScreen } from '../features/exchange/screens/CameraScreen';
+import { MainTabNavigator } from './MainTabNavigator';
 
-export type RootStackParamList = {
-  Login: undefined;
-  Home: undefined;
-  MyCardEdit: undefined;
-};
 
 const Stack = createNativeStackNavigator();
 
 export const AppNavigator = () => {
   const { session, isLoading } = useAuth();
 
-  if (isLoading) {
-    return null; // スプラッシュスクリーン等に置き換え可能
-  }
+  if (isLoading) return null; // 初期化中の画面（スプラッシュ等）
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {session ? (
-          // 認証済みスタック
-          <>
-            <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Group>
+            <Stack.Screen name="Main" component={MainTabNavigator} />
             <Stack.Screen name="MyCardEdit" component={MyCardEditScreen} />
-          </>
+          </Stack.Group>
         ) : (
-          // 未認証スタック
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Group>
+            <Stack.Screen name="Login" component={LoginScreen} />
+          </Stack.Group>
         )}
       </Stack.Navigator>
     </NavigationContainer>
