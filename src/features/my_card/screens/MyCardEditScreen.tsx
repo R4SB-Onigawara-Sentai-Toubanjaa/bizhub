@@ -40,7 +40,7 @@ import {
   createInitialCustomFields,
 } from '../types';
 import { useAuth } from '../../auth/AuthContext';
-import type { RootStackParamList } from '../../../navigation/AppNavigator';
+import type { RootStackParamList } from '../../../navigation/types';
 
 // 現在の画面ではなく「アプリ全体のナビゲーション型」を指定する（any型の使用禁止）
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'MyCardEdit'>;
