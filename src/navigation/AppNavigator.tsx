@@ -6,8 +6,10 @@ import { RootStackParamList } from './types';
 
 import { LoginScreen } from '../features/auth/screens/LoginScreen';
 import { HomeScreen } from '../features/exchange/screens/HomeScreen';
+import { MyCardEditScreen } from '../features/my_card/screens/MyCardEditScreen';
 import { CameraScreen } from '../features/exchange/screens/CameraScreen';
 import { MainTabNavigator } from './MainTabNavigator';
+
 
 const Stack = createNativeStackNavigator();
 
@@ -22,7 +24,7 @@ export const AppNavigator = () => {
         {session ? (
           <Stack.Group>
             <Stack.Screen name="Main" component={MainTabNavigator} />
-            {/* <Stack.Screen name="MyCardView" component={MyCardViewScreen} /> */}
+            <Stack.Screen name="MyCardEdit" component={MyCardEditScreen} />
           </Stack.Group>
         ) : (
           <Stack.Group>

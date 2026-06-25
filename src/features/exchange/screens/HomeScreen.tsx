@@ -1,10 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Button, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../auth/AuthContext';
 import { generateQrToken } from '../api/qrToken';
+import { RootStackParamList } from '../../../navigation/types';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const HomeScreen = () => {
+  const navigation = useNavigation<NavigationProp>();
   const { session } = useAuth();
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,8 +36,18 @@ export const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* ヘッダー：左上の人物アイコン（押すと名刺編集画面へ遷移） */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('MyCardEdit')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="person-circle-outline" size={32} color="#2563EB" />
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.title}>あなたの名刺QRコード</Text>
-      
+
       {loading ? (
         <ActivityIndicator size="large" />
       ) : qrToken ? (
@@ -52,6 +69,7 @@ export const HomeScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { position: 'absolute', top: 50, left: 16 },
   title: { fontSize: 18, fontWeight: 'bold', marginBottom: 20 },
   qrContainer: { alignItems: 'center', marginVertical: 30 },
   tokenText: { marginTop: 15, color: '#666' },
