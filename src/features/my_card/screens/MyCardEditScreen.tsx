@@ -27,7 +27,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
+ 
 import CardPreview from '../components/CardPreview';
 import EditTabs from '../components/EditTabs';
 import FormInput from '../components/FormInput';
@@ -40,10 +41,11 @@ import {
   createInitialCustomFields,
 } from '../types';
 import { useAuth } from '../../auth/AuthContext';
-import type { RootStackParamList } from '../../../navigation/types';
-
+import { RootStackParamList } from '../../../navigation/types';
+ 
 // 現在の画面ではなく「アプリ全体のナビゲーション型」を指定する（any型の使用禁止）
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'MyCardEdit'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+ 
 const COLORS = {
   bg: '#F5F6F8',
   cardBg: '#FFFFFF',
@@ -53,7 +55,7 @@ const COLORS = {
   brand: '#2563EB',
   danger: '#DC2626',
 };
-
+ 
 const TABS: MyCardTabDefinition[] = [
   { key: 'company', label: '社名', slotNumber: null },
   { key: 'name', label: '氏名', slotNumber: null },
@@ -63,28 +65,28 @@ const TABS: MyCardTabDefinition[] = [
   { key: 'slot3', label: '要素3', slotNumber: 3 },
   { key: 'slot4', label: '要素4', slotNumber: 4 },
 ];
-
+ 
 export const MyCardEditScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { session } = useAuth();
   const userId = session?.user.id;
-
+ 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
+ 
   const [company, setCompany] = useState('');
   const [name, setName] = useState('');
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [customFields, setCustomFields] = useState<CustomFieldSlot[]>(createInitialCustomFields());
-
+ 
   const [activeTab, setActiveTab] = useState<MyCardTabKey>('company');
   const fadeAnim = useMemo(() => new Animated.Value(1), []);
-
+ 
   useEffect(() => {
     let isMounted = true;
-
+ 
     async function load() {
       if (!userId) return;
       try {
@@ -105,13 +107,13 @@ export const MyCardEditScreen = () => {
         if (isMounted) setIsLoading(false);
       }
     }
-
+ 
     load();
     return () => {
       isMounted = false;
     };
   }, [userId]);
-
+ 
   const handleTabChange = useCallback(
     (tab: MyCardTabKey) => {
       Animated.sequence([
@@ -122,13 +124,13 @@ export const MyCardEditScreen = () => {
     },
     [fadeAnim]
   );
-
+ 
   const updateSlot = useCallback((slotNumber: number, patch: Partial<CustomFieldSlot>) => {
     setCustomFields((prev) =>
       prev.map((slot) => (slot.slot === slotNumber ? { ...slot, ...patch } : slot))
     );
   }, []);
-
+ 
   const handleLogoChange = useCallback(
     async (localUri: string) => {
       setLogoUri(localUri); // 即時プレビュー反映
@@ -145,15 +147,15 @@ export const MyCardEditScreen = () => {
     },
     [userId]
   );
-
+ 
   const handleSave = useCallback(async () => {
     if (!userId) return;
-
+ 
     if (!name.trim() || !company.trim()) {
       setErrorMessage('氏名と会社名は必須項目です。');
       return;
     }
-
+ 
     try {
       setIsSaving(true);
       setErrorMessage(null);
@@ -170,40 +172,51 @@ export const MyCardEditScreen = () => {
       setIsSaving(false);
     }
   }, [userId, name, company, logoUri, customFields, navigation]);
-
+ 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer} edges={['top', 'bottom']}>
         <ActivityIndicator color={COLORS.brand} size="large" />
-      </View>
+      </SafeAreaView>
     );
   }
-
+ 
   return (
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         {/* 1. ヘッダーエリア */}
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            style={styles.backButton}
+            style={styles.headerSide}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="arrow-back" size={24} color={COLORS.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>自分の名刺</Text>
-          <TouchableOpacity onPress={handleSave} disabled={isSaving} style={styles.saveButton}>
+ 
+          <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+            自分の名刺
+          </Text>
+ 
+          <TouchableOpacity
+            onPress={handleSave}
+            disabled={isSaving}
+            style={[styles.headerSide, styles.saveButton]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             {isSaving ? (
               <ActivityIndicator color={COLORS.brand} size="small" />
             ) : (
-              <Text style={styles.saveButtonText}>保存</Text>
+              <Text style={styles.saveButtonText} numberOfLines={1}>
+                保存
+              </Text>
             )}
           </TouchableOpacity>
         </View>
-
+ 
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           {/* 2. 名刺プレビューエリア */}
           <View style={styles.section}>
@@ -214,12 +227,12 @@ export const MyCardEditScreen = () => {
               customFields={customFields}
             />
           </View>
-
+ 
           {/* 3. 編集タブエリア */}
           <View style={styles.section}>
             <EditTabs tabs={TABS} activeTab={activeTab} onChange={handleTabChange} />
           </View>
-
+ 
           {/* 4. 入力フォームエリア */}
           <Animated.View style={[styles.formCard, { opacity: fadeAnim }]}>
             {activeTab === 'company' && (
@@ -231,7 +244,7 @@ export const MyCardEditScreen = () => {
                 onChangeText={setCompany}
               />
             )}
-
+ 
             {activeTab === 'name' && (
               <FormInput
                 label="氏名"
@@ -241,7 +254,7 @@ export const MyCardEditScreen = () => {
                 onChangeText={setName}
               />
             )}
-
+ 
             {activeTab === 'image' && (
               <ImagePickerField
                 imageUri={logoUri}
@@ -249,7 +262,7 @@ export const MyCardEditScreen = () => {
                 isUploading={isUploadingLogo}
               />
             )}
-
+ 
             {TABS.filter((t) => t.slotNumber !== null).map((tab) => {
               if (tab.key !== activeTab || tab.slotNumber === null) return null;
               const slot = customFields.find((f) => f.slot === tab.slotNumber);
@@ -272,16 +285,16 @@ export const MyCardEditScreen = () => {
               );
             })}
           </Animated.View>
-
+ 
           {errorMessage ? (
             <Text style={styles.errorText}>{errorMessage}</Text>
           ) : null}
         </ScrollView>
-      </View>
+      </SafeAreaView>
     </KeyboardAvoidingView>
   );
 };
-
+ 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   loadingContainer: {
@@ -297,31 +310,31 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 12,
     backgroundColor: COLORS.cardBg,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  backButton: {
-    padding: 4,
+  headerSide: {
+    width: 56,
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    flex: 1,
+    fontSize: 17,
     fontWeight: '700',
     color: COLORS.text,
+    textAlign: 'center',
   },
   saveButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    minWidth: 48,
-    alignItems: 'center',
+    alignItems: 'flex-end',
   },
   saveButtonText: {
     fontSize: 15,
     fontWeight: '700',
     color: COLORS.brand,
+    flexShrink: 0,
   },
   scrollContent: {
     padding: 16,
