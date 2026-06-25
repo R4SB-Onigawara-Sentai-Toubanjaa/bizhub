@@ -3,6 +3,14 @@
     "name": "bizhub",
     "slug": "bizhub",
     "version": "1.0.0",
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "名刺のQRコードをスキャンするためにカメラへのアクセスが必要です。"
+        }
+      ]
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
