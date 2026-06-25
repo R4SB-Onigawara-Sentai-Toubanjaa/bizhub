@@ -25,9 +25,14 @@ export const generateQrToken = async (userId: string) => {
       user_id: userId,
       expires_at: expiresAt.toISOString(),
     })
-    .select('token')
+    .select('token, expires_at')
     .single();
 
   if (error) throw error;
-  return data.token;
+
+  // トークンと有効期限を両方返す
+  return { 
+    token: data.token, 
+    expiresAt: data.expires_at 
+  };
 };
