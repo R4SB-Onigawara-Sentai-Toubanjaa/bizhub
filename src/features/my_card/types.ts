@@ -9,13 +9,13 @@
 export interface CustomFieldSlot {
   /** スロット番号（1〜10）。位置は固定で詰めない。 */
   slot: number;
-  /** 項目名（任意）。空文字なら非表示扱い。 */
+  /** 項目名（任意）。空文字なら非表示扱い。free選択時は空文字。 */
   label: string;
-  /** 入力値（label があれば実質必須、運用上は両方空なら非表示）。 */
+  /** 入力値 */
   value: string;
 }
 
-/** 編集タブの種別 */
+/** 編集タブの種別（スロット10個に拡張） */
 export type MyCardTabKey =
   | 'company'
   | 'name'
@@ -23,7 +23,13 @@ export type MyCardTabKey =
   | 'slot1'
   | 'slot2'
   | 'slot3'
-  | 'slot4';
+  | 'slot4'
+  | 'slot5'
+  | 'slot6'
+  | 'slot7'
+  | 'slot8'
+  | 'slot9'
+  | 'slot10';
 
 /** タブ表示用の定義 */
 export interface MyCardTabDefinition {
@@ -37,8 +43,8 @@ export interface MyCardTabDefinition {
 export interface MyCardFormState {
   id: string | null;
   userId: string;
-  name: string; // 氏名（Not Null）
-  company: string; // 会社名（Nullable だが本UIでは必須運用）
+  name: string;
+  company: string;
   logoUrl: string | null;
   customFields: CustomFieldSlot[]; // 常に10スロット分を保持
   updatedAt: string | null;
@@ -52,23 +58,39 @@ export interface MyCardUpdatePayload {
   customFields: CustomFieldSlot[];
 }
 
-/** 要素1〜5 のデフォルト項目名（DBスキーマを変更せず custom_fields で表現する運用） */
-export const DEFAULT_SLOT_LABELS: Record<number, string> = {
-  1: '役職',
-  2: '氏名（ローマ字）',
-  3: '電話番号',
-  4: 'メールアドレス',
-  5: '会社URL',
-};
+export const COMPANY_MAX_LENGTH = 25;
+export const NAME_MAX_LENGTH = 12;
 
-/** 初期状態：10スロットを生成（要素1〜5はデフォルト項目名、6〜10は空） */
+/**
+ * 候補ボタンの定義。
+ * label: ボタン表示名 / value: スロットのlabelにセットされる実際の項目名。
+ * free の場合 value は空文字（項目名なしで値だけ入力）。
+ */
+export interface FieldCandidate {
+  label: string;  // ボタン上の表示
+  value: string;  // スロットの label にセットされる値（free は ''）
+  isFree: boolean;
+  maxLength: number;
+}
+
+export const FIELD_CANDIDATES: FieldCandidate[] = [
+  { label: '役職名', value: '役職名', isFree: false, maxLength: 20 },
+  { label: '〒', value: '郵便番号', isFree: false, maxLength: 8 },
+  { label: '住所', value: '住所', isFree: false, maxLength: 40 },
+  { label: 'mail', value: 'mail', isFree: false, maxLength: 35 },
+  { label: 'TEL', value: 'TEL', isFree: false, maxLength: 20 },
+  { label: 'FAX', value: 'FAX', isFree: false, maxLength: 20 },
+  { label: '会社URL', value: '会社URL', isFree: false, maxLength: 30 },
+  { label: 'SNS', value: 'SNSアカウント', isFree: false, maxLength: 30 },
+  { label: '営業時間', value: '営業時間', isFree: false, maxLength: 30 },
+  { label: 'free', value: '', isFree: true, maxLength: 50 },
+];
+
+/** 初期状態：10スロット全て空で生成（候補選択式のため初期値はなし） */
 export function createInitialCustomFields(): CustomFieldSlot[] {
-  return Array.from({ length: 10 }, (_, i) => {
-    const slot = i + 1;
-    return {
-      slot,
-      label: DEFAULT_SLOT_LABELS[slot] ?? '',
-      value: '',
-    };
-  });
+  return Array.from({ length: 10 }, (_, i) => ({
+    slot: i + 1,
+    label: '',
+    value: '',
+  }));
 }
