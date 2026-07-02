@@ -10,7 +10,7 @@
  */
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
-import { CustomFieldSlot } from '../types';
+import { CustomFieldSlot, FURIGANA_SLOT } from '../types';
 
 interface CardPreviewProps {
   company: string;
@@ -27,25 +27,44 @@ const COLORS = {
   border: '#D1D5DB',
 };
 
-function SlotLine({ slot }: { slot: CustomFieldSlot }) {
+function SlotLine({ slot, compact }: { slot: CustomFieldSlot; compact: boolean }) {
   const hasLabel = slot.label.trim().length > 0;
   const hasValue = slot.value.trim().length > 0;
 
-  if (!hasLabel && !hasValue) {
-    return null; // 両方空のスロットは非表示
-  }
+  if (!hasValue) return null;
 
   return (
     <View style={styles.slotRow}>
-      {hasLabel ? <Text style={styles.slotLabel}>{slot.label}</Text> : null}
-      <Text style={styles.slotValue} numberOfLines={2} ellipsizeMode="tail">{hasValue ? slot.value : ''}</Text>
+      {hasLabel ? (
+        <Text
+          style={[styles.slotLabel, compact && styles.slotLabelCompact]}
+          numberOfLines={1}
+        >
+          {slot.label}
+        </Text>
+      ) : null}
+      <Text
+        style={[styles.slotValue, compact && styles.slotValueCompact]}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {slot.value}
+      </Text>
     </View>
   );
 }
 
 export default function CardPreview({ company, name, logoUrl, customFields }: CardPreviewProps) {
-  // 要素1〜5（役職・ローマ字氏名・電話・メール・URL）のみプレビューに表示
-  const visibleSlots = customFields.filter((f) => f.slot >= 1 && f.slot <= 5);
+  // フリガナ（スロット0）を取得
+  const furigana = customFields.find((f) => f.slot === FURIGANA_SLOT)?.value ?? '';
+
+  // 値が入っているスロットを全件表示（スロット0のフリガナは除く）
+  const visibleSlots = customFields.filter(
+    (f) => f.slot !== FURIGANA_SLOT && f.value.trim().length > 0
+  );
+
+  // 6件以上の場合はコンパクト表示
+  const compact = visibleSlots.length >= 6;
 
   return (
     <View style={styles.cardShadowWrap}>
@@ -65,6 +84,7 @@ export default function CardPreview({ company, name, logoUrl, customFields }: Ca
           ) : null}
         </View>
 
+        {/* 氏名＋フリガナ */}
         <View style={styles.nameArea}>
           <Text
             style={styles.name}
@@ -74,13 +94,18 @@ export default function CardPreview({ company, name, logoUrl, customFields }: Ca
           >
             {name || '氏名'}
           </Text>
+          {furigana ? (
+            <Text style={styles.furigana} numberOfLines={1} ellipsizeMode="tail">
+              {furigana}
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.divider} />
 
-        <View style={styles.contactArea}>
+        <View style={[styles.contactArea, compact && styles.contactAreaCompact]}>
           {visibleSlots.map((slot) => (
-            <SlotLine key={slot.slot} slot={slot} />
+            <SlotLine key={slot.slot} slot={slot} compact={compact} />
           ))}
         </View>
       </View>
@@ -133,27 +158,42 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text,
   },
+  furigana: {
+    fontSize: 11,
+    color: COLORS.subText,
+    marginTop: 2,
+  },
   divider: {
     height: 1,
     backgroundColor: COLORS.border,
     marginVertical: 12,
   },
   contactArea: {
-    gap: 4,
+    gap: 5,
+  },
+  contactAreaCompact: {
+    gap: 2,
   },
   slotRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   slotLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.subText,
     marginRight: 6,
     minWidth: 72,
   },
+  slotLabelCompact: {
+    fontSize: 9,
+    minWidth: 52,
+  },
   slotValue: {
-    fontSize: 13,
+    fontSize: 11,
     color: COLORS.text,
     flexShrink: 1,
+  },
+  slotValueCompact: {
+    fontSize: 9,
   },
 });
