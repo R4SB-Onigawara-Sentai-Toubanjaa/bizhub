@@ -5,9 +5,14 @@ import { supabase } from '../../utils/supabase';
 type AuthContextType = {
   session: Session | null;
   isLoading: boolean;
+  signOut: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextType>({ session: null, isLoading: true });
+const AuthContext = createContext<AuthContextType>({
+  session: null,
+  isLoading: true,
+  signOut: async () => {},
+});
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -28,8 +33,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw new Error(error.message);
+    }
+    // session を null に更新する処理は onAuthStateChange が自動で行うため、
+    // ここで setSession(null) を明示的に呼ぶ必要はない。
+  };
+
   return (
-    <AuthContext.Provider value={{ session, isLoading }}>
+    <AuthContext.Provider value={{ session, isLoading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
