@@ -169,14 +169,14 @@ export const MyCardEditScreen = () => {
       setIsSaving(true);
       setErrorMessage(null);
 
-      const savedCard = await saveMyCard(userId, {
+      await saveMyCard(userId, {
         name: name.trim(),
         company: company.trim(),
         logoUrl: logoUri,
         customFields,
       });
 
-      navigation.replace('MyCardView');
+      navigation.goBack(); // 保存後に前の画面に戻る
     } catch (e) {
       setErrorMessage(e instanceof Error ? e.message : '名刺の保存に失敗しました。');
     } finally {
