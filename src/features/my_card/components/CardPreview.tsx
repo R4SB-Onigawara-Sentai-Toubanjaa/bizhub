@@ -38,7 +38,7 @@ function SlotLine({ slot }: { slot: CustomFieldSlot }) {
   return (
     <View style={styles.slotRow}>
       {hasLabel ? <Text style={styles.slotLabel}>{slot.label}</Text> : null}
-      <Text style={styles.slotValue}>{hasValue ? slot.value : ''}</Text>
+      <Text style={styles.slotValue} numberOfLines={2} ellipsizeMode="tail">{hasValue ? slot.value : ''}</Text>
     </View>
   );
 }
@@ -52,7 +52,11 @@ export default function CardPreview({ company, name, logoUrl, customFields }: Ca
       <View style={styles.card}>
         <View style={styles.topRow}>
           <View style={styles.topTextArea}>
-            <Text style={styles.company} numberOfLines={1}>
+            <Text
+              style={styles.company}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
               {company || '会社名'}
             </Text>
           </View>
@@ -62,7 +66,12 @@ export default function CardPreview({ company, name, logoUrl, customFields }: Ca
         </View>
 
         <View style={styles.nameArea}>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text
+            style={styles.name}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}
+          >
             {name || '氏名'}
           </Text>
         </View>
@@ -95,6 +104,8 @@ const styles = StyleSheet.create({
     aspectRatio: 1.65,
     padding: 20,
     justifyContent: 'flex-start',
+    height: 220,
+    overflow: 'hidden',
   },
   topRow: {
     flexDirection: 'row',
@@ -138,7 +149,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.subText,
     marginRight: 6,
-    minWidth: 64,
+    minWidth: 72,
   },
   slotValue: {
     fontSize: 13,

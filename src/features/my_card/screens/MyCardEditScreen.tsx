@@ -28,7 +28,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
- 
+
 import CardPreview from '../components/CardPreview';
 import EditTabs from '../components/EditTabs';
 import FormInput from '../components/FormInput';
@@ -38,14 +38,16 @@ import {
   CustomFieldSlot,
   MyCardTabDefinition,
   MyCardTabKey,
+  FIELD_CANDIDATES,
   createInitialCustomFields,
+  COMPANY_MAX_LENGTH,
+  NAME_MAX_LENGTH,
 } from '../types';
 import { useAuth } from '../../auth/AuthContext';
 import { RootStackParamList } from '../../../navigation/types';
- 
-// 現在の画面ではなく「アプリ全体のナビゲーション型」を指定する（any型の使用禁止）
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
- 
+
 const COLORS = {
   bg: '#F5F6F8',
   cardBg: '#FFFFFF',
@@ -55,38 +57,44 @@ const COLORS = {
   brand: '#2563EB',
   danger: '#DC2626',
 };
- 
+
 const TABS: MyCardTabDefinition[] = [
-  { key: 'company', label: '社名', slotNumber: null },
-  { key: 'name', label: '氏名', slotNumber: null },
-  { key: 'image', label: '画像', slotNumber: null },
-  { key: 'slot1', label: '要素1', slotNumber: 1 },
-  { key: 'slot2', label: '要素2', slotNumber: 2 },
-  { key: 'slot3', label: '要素3', slotNumber: 3 },
-  { key: 'slot4', label: '要素4', slotNumber: 4 },
+  { key: 'company', label: '社名',  slotNumber: null },
+  { key: 'name',    label: '氏名',  slotNumber: null },
+  { key: 'image',   label: '画像',  slotNumber: null },
+  { key: 'slot1',   label: '要素1', slotNumber: 1 },
+  { key: 'slot2',   label: '要素2', slotNumber: 2 },
+  { key: 'slot3',   label: '要素3', slotNumber: 3 },
+  { key: 'slot4',   label: '要素4', slotNumber: 4 },
+  { key: 'slot5',   label: '要素5', slotNumber: 5 },
+  { key: 'slot6',   label: '要素6', slotNumber: 6 },
+  { key: 'slot7',   label: '要素7', slotNumber: 7 },
+  { key: 'slot8',   label: '要素8', slotNumber: 8 },
+  { key: 'slot9',   label: '要素9', slotNumber: 9 },
+  { key: 'slot10',  label: '要素10', slotNumber: 10 },
 ];
- 
+
 export const MyCardEditScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { session } = useAuth();
   const userId = session?.user.id;
- 
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
- 
+
   const [company, setCompany] = useState('');
   const [name, setName] = useState('');
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [customFields, setCustomFields] = useState<CustomFieldSlot[]>(createInitialCustomFields());
- 
+
   const [activeTab, setActiveTab] = useState<MyCardTabKey>('company');
   const fadeAnim = useMemo(() => new Animated.Value(1), []);
- 
+
   useEffect(() => {
     let isMounted = true;
- 
+
     async function load() {
       if (!userId) return;
       try {
@@ -107,13 +115,13 @@ export const MyCardEditScreen = () => {
         if (isMounted) setIsLoading(false);
       }
     }
- 
+
     load();
     return () => {
       isMounted = false;
     };
   }, [userId]);
- 
+
   const handleTabChange = useCallback(
     (tab: MyCardTabKey) => {
       Animated.sequence([
@@ -124,13 +132,13 @@ export const MyCardEditScreen = () => {
     },
     [fadeAnim]
   );
- 
+
   const updateSlot = useCallback((slotNumber: number, patch: Partial<CustomFieldSlot>) => {
     setCustomFields((prev) =>
       prev.map((slot) => (slot.slot === slotNumber ? { ...slot, ...patch } : slot))
     );
   }, []);
- 
+
   const handleLogoChange = useCallback(
     async (localUri: string) => {
       setLogoUri(localUri); // 即時プレビュー反映
@@ -147,15 +155,15 @@ export const MyCardEditScreen = () => {
     },
     [userId]
   );
- 
+
   const handleSave = useCallback(async () => {
     if (!userId) return;
- 
+
     if (!name.trim() || !company.trim()) {
       setErrorMessage('氏名と会社名は必須項目です。');
       return;
     }
- 
+
     try {
       setIsSaving(true);
       setErrorMessage(null);
@@ -172,7 +180,7 @@ export const MyCardEditScreen = () => {
       setIsSaving(false);
     }
   }, [userId, name, company, logoUri, customFields, navigation]);
- 
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer} edges={['top', 'bottom']}>
@@ -180,11 +188,12 @@ export const MyCardEditScreen = () => {
       </SafeAreaView>
     );
   }
- 
+
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'android' ? 24 : 0}
     >
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         {/* 1. ヘッダーエリア */}
@@ -196,11 +205,11 @@ export const MyCardEditScreen = () => {
           >
             <Ionicons name="arrow-back" size={24} color={COLORS.text} />
           </TouchableOpacity>
- 
+
           <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
             自分の名刺
           </Text>
- 
+
           <TouchableOpacity
             onPress={handleSave}
             disabled={isSaving}
@@ -216,7 +225,7 @@ export const MyCardEditScreen = () => {
             )}
           </TouchableOpacity>
         </View>
- 
+
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           {/* 2. 名刺プレビューエリア */}
           <View style={styles.section}>
@@ -227,34 +236,48 @@ export const MyCardEditScreen = () => {
               customFields={customFields}
             />
           </View>
- 
+
           {/* 3. 編集タブエリア */}
           <View style={styles.section}>
             <EditTabs tabs={TABS} activeTab={activeTab} onChange={handleTabChange} />
           </View>
- 
+
           {/* 4. 入力フォームエリア */}
           <Animated.View style={[styles.formCard, { opacity: fadeAnim }]}>
             {activeTab === 'company' && (
-              <FormInput
-                label="会社名"
-                required
-                placeholder="株式会社サンプル"
-                value={company}
-                onChangeText={setCompany}
-              />
+              <>
+                <FormInput
+                  label="会社名"
+                  required
+                  placeholder="株式会社サンプル"
+                  value={company}
+                  onChangeText={setCompany}
+                  maxLength={COMPANY_MAX_LENGTH}
+                />
+
+                <Text style={styles.charCount}>
+                  {company.length} / {COMPANY_MAX_LENGTH}
+                </Text>
+              </>
             )}
- 
+
             {activeTab === 'name' && (
-              <FormInput
-                label="氏名"
-                required
-                placeholder="山田 太郎"
-                value={name}
-                onChangeText={setName}
-              />
+              <>
+                <FormInput
+                  label="氏名"
+                  required
+                  placeholder="山田 太郎"
+                  value={name}
+                  onChangeText={setName}
+                  maxLength={NAME_MAX_LENGTH}
+                />
+
+                <Text style={styles.charCount}>
+                  {name.length} / {NAME_MAX_LENGTH}
+                </Text>
+              </>
             )}
- 
+
             {activeTab === 'image' && (
               <ImagePickerField
                 imageUri={logoUri}
@@ -262,30 +285,76 @@ export const MyCardEditScreen = () => {
                 isUploading={isUploadingLogo}
               />
             )}
- 
+
             {TABS.filter((t) => t.slotNumber !== null).map((tab) => {
               if (tab.key !== activeTab || tab.slotNumber === null) return null;
               const slot = customFields.find((f) => f.slot === tab.slotNumber);
               if (!slot) return null;
+
+              // 現在選択されている候補を特定（free は label が空文字）
+              const selectedCandidate = FIELD_CANDIDATES.find((c) =>
+                c.isFree ? slot.label === '' && slot.value !== '' : c.value === slot.label
+              );
+
+              const currentMaxLength = selectedCandidate?.maxLength ?? 50;
+
               return (
                 <View key={tab.key}>
-                  <FormInput
-                    label="項目名（任意）"
-                    placeholder="例：役職、電話番号など"
-                    value={slot.label}
-                    onChangeText={(text) => updateSlot(slot.slot, { label: text })}
-                  />
-                  <FormInput
-                    label="入力値"
-                    placeholder="値を入力"
-                    value={slot.value}
-                    onChangeText={(text) => updateSlot(slot.slot, { value: text })}
-                  />
+                  {/* 候補ボタングリッド */}
+                  <Text style={styles.candidateLabel}>項目を選択</Text>
+                  <View style={styles.candidateGrid}>
+                    {FIELD_CANDIDATES.map((candidate) => {
+                      const isSelected = candidate.isFree
+                        ? selectedCandidate?.isFree
+                        : slot.label === candidate.value;
+                      return (
+                        <TouchableOpacity
+                          key={candidate.label}
+                          style={[
+                            styles.candidateButton,
+                            isSelected ? styles.candidateButtonActive : null,
+                          ]}
+                          onPress={() =>
+                            updateSlot(slot.slot, {
+                              label: candidate.value,
+                              // 候補を切り替えた場合は値をリセットしない（入力済みを保持）
+                            })
+                          }
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            style={[
+                              styles.candidateButtonText,
+                              isSelected ? styles.candidateButtonTextActive : null,
+                            ]}
+                          >
+                            {candidate.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* 値入力欄（候補が選ばれている場合のみ表示） */}
+                  {(slot.label !== '' || selectedCandidate?.isFree) && (
+                    <View>
+                      <FormInput
+                        label={slot.label !== '' ? slot.label : 'その他'}
+                        placeholder="値を入力"
+                        value={slot.value}
+                        onChangeText={(text) => updateSlot(slot.slot, { value: text })}
+                        maxLength={currentMaxLength}
+                      />
+                      <Text style={styles.charCount}>
+                        {slot.value.length} / {currentMaxLength}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               );
             })}
           </Animated.View>
- 
+
           {errorMessage ? (
             <Text style={styles.errorText}>{errorMessage}</Text>
           ) : null}
@@ -294,7 +363,7 @@ export const MyCardEditScreen = () => {
     </KeyboardAvoidingView>
   );
 };
- 
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   loadingContainer: {
@@ -355,5 +424,47 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.danger,
     textAlign: 'center',
+  },
+  charCount: {
+    fontSize: 11,
+    color: COLORS.subText,
+    textAlign: 'right',
+    marginTop: -10,
+    marginBottom: 8,
+    paddingRight: 4,
+  },
+  candidateLabel: {
+    fontSize: 12,
+    color: COLORS.subText,
+    fontWeight: '500',
+    marginBottom: 10,
+  },
+  candidateGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  candidateButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.cardBg,
+    minWidth: 64,
+    alignItems: 'center',
+  },
+  candidateButtonActive: {
+    backgroundColor: COLORS.brand,
+    borderColor: COLORS.brand,
+  },
+  candidateButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  candidateButtonTextActive: {
+    color: '#FFFFFF',
   },
 });
