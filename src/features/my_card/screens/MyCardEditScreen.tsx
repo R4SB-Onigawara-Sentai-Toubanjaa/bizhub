@@ -39,6 +39,7 @@ import {
   MyCardTabDefinition,
   MyCardTabKey,
   FIELD_CANDIDATES,
+  FURIGANA_SLOT,
   createInitialCustomFields,
   COMPANY_MAX_LENGTH,
   NAME_MAX_LENGTH,
@@ -167,13 +168,15 @@ export const MyCardEditScreen = () => {
     try {
       setIsSaving(true);
       setErrorMessage(null);
-      await saveMyCard(userId, {
+
+      const savedCard = await saveMyCard(userId, {
         name: name.trim(),
         company: company.trim(),
         logoUrl: logoUri,
         customFields,
       });
-      navigation.goBack();
+
+      navigation.replace('MyCardView');
     } catch (e) {
       setErrorMessage(e instanceof Error ? e.message : '名刺の保存に失敗しました。');
     } finally {
@@ -271,9 +274,19 @@ export const MyCardEditScreen = () => {
                   onChangeText={setName}
                   maxLength={NAME_MAX_LENGTH}
                 />
-
                 <Text style={styles.charCount}>
                   {name.length} / {NAME_MAX_LENGTH}
+                </Text>
+
+                <FormInput
+                  label="フリガナ（任意）"
+                  placeholder="ヤマダ タロウ"
+                  value={customFields.find((f) => f.slot === FURIGANA_SLOT)?.value ?? ''}
+                  onChangeText={(text) => updateSlot(FURIGANA_SLOT, { value: text })}
+                  maxLength={NAME_MAX_LENGTH}
+                />
+                <Text style={styles.charCount}>
+                  {(customFields.find((f) => f.slot === FURIGANA_SLOT)?.value ?? '').length} / {NAME_MAX_LENGTH}
                 </Text>
               </>
             )}

@@ -86,11 +86,17 @@ export const FIELD_CANDIDATES: FieldCandidate[] = [
   { label: 'free', value: '', isFree: true, maxLength: 50 },
 ];
 
-/** 初期状態：10スロット全て空で生成（候補選択式のため初期値はなし） */
+/** フリガナ専用の予約スロット番号（ユーザーが使う1〜10とは別枠） */
+export const FURIGANA_SLOT = 0;
+
+/** 初期状態：スロット0（フリガナ）＋1〜10を生成 */
 export function createInitialCustomFields(): CustomFieldSlot[] {
-  return Array.from({ length: 10 }, (_, i) => ({
-    slot: i + 1,
-    label: '',
-    value: '',
-  }));
+  return [
+    { slot: FURIGANA_SLOT, label: 'フリガナ', value: '' },
+    ...Array.from({ length: 10 }, (_, i) => ({
+      slot: i + 1,
+      label: '',
+      value: '',
+    })),
+  ];
 }

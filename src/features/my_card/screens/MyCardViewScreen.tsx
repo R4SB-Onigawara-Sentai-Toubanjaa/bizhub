@@ -5,7 +5,7 @@
  * アカウントメニュー「名刺を見る」から遷移する。
  * 画面内の「編集」ボタンから MyCardEditScreen へ遷移する。
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -35,6 +35,7 @@ export const MyCardViewScreen = () => {
   const { session } = useAuth();
   const userId = session?.user.id;
 
+  const requestIdRef = useRef(0);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -43,28 +44,55 @@ export const MyCardViewScreen = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [customFields, setCustomFields] = useState<CustomFieldSlot[]>(createInitialCustomFields());
 
-  const load = useCallback(async () => {
-    if (!userId) return;
+  const loadCard = useCallback(async () => {
+    if (!userId) {
+      setIsLoading(false);
+      return;
+    }
+
+    const requestId = ++requestIdRef.current;
+
     try {
       setIsLoading(true);
       setErrorMessage(null);
+
       const card = await fetchMyCard(userId);
+
+      if (requestId !== requestIdRef.current) return;
+
       if (card) {
         setCompany(card.company);
         setName(card.name);
         setLogoUrl(card.logoUrl);
         setCustomFields(card.customFields);
+      } else {
+        setCompany('');
+        setName('');
+        setLogoUrl(null);
+        setCustomFields(createInitialCustomFields());
       }
     } catch (e) {
-      setErrorMessage(e instanceof Error ? e.message : '名刺データの読み込みに失敗しました。');
+      if (requestId === requestIdRef.current) {
+        setErrorMessage(e instanceof Error ? e.message : '名刺データの読み込みに失敗しました。');
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [userId]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    loadCard();
+  }, [loadCard]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadCard();
+    });
+
+    return unsubscribe;
+  }, [navigation, loadCard]);
 
   if (isLoading) {
     return (
