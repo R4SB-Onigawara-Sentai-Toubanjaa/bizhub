@@ -9,8 +9,9 @@
  *   非表示スロットは高さ0としてレンダリングしない）
  */
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, ScrollView } from 'react-native';
 import { CustomFieldSlot, FURIGANA_SLOT } from '../types';
+import {Ionicons} from '@expo/vector-icons';
 
 interface CardPreviewProps {
   company: string;
@@ -27,29 +28,42 @@ const COLORS = {
   border: '#D1D5DB',
 };
 
-function SlotLine({ slot, compact }: { slot: CustomFieldSlot; compact: boolean }) {
-  const hasLabel = slot.label.trim().length > 0;
-  const hasValue = slot.value.trim().length > 0;
+const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  '役職名': 'briefcase-outline',
+  'TEL': 'call-outline',
+  'mail': 'mail-outline',
+  '郵便番号': 'mail-open-outline',
+  '住所': 'home-outline',
+  '会社URL': 'globe-outline',
+  'SNSアカウント': 'share-social-outline',
+  '営業時間': 'time-outline',
+};
 
-  if (!hasValue) return null;
-
+function InfoItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
-    <View style={styles.slotRow}>
-      {hasLabel ? (
-        <Text
-          style={[styles.slotLabel, compact && styles.slotLabelCompact]}
-          numberOfLines={1}
-        >
-          {slot.label}
+    <View style={styles.infoItem}>
+      <Ionicons
+        name={ICONS[label] ?? 'document-text-outline'}
+        size={18}
+        color="#2563EB"
+        style={styles.infoIcon}
+      />
+
+      <View style={styles.infoContent}>
+        <Text style={styles.infoLabel}>
+          {label || 'その他'}
         </Text>
-      ) : null}
-      <Text
-        style={[styles.slotValue, compact && styles.slotValueCompact]}
-        numberOfLines={1}
-        ellipsizeMode="tail"
-      >
-        {slot.value}
-      </Text>
+
+        <Text style={styles.infoValue}>
+          {value}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -59,55 +73,57 @@ export default function CardPreview({ company, name, logoUrl, customFields }: Ca
   const furigana = customFields.find((f) => f.slot === FURIGANA_SLOT)?.value ?? '';
 
   // 値が入っているスロットを全件表示（スロット0のフリガナは除く）
-  const visibleSlots = customFields.filter(
-    (f) => f.slot !== FURIGANA_SLOT && f.value.trim().length > 0
-  );
-
-  // 6件以上の場合はコンパクト表示
-  const compact = visibleSlots.length >= 6;
+  const visibleSlots = customFields
+  .filter(
+    (f) =>
+      f.slot !== FURIGANA_SLOT &&
+      f.value.trim().length > 0
+  )
+  .sort((a, b) => a.slot - b.slot);
 
   return (
     <View style={styles.cardShadowWrap}>
       <View style={styles.card}>
-        <View style={styles.topRow}>
-          <View style={styles.topTextArea}>
-            <Text
-              style={styles.company}
-              numberOfLines={2}
-              ellipsizeMode="tail"
-            >
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.company}>
               {company || '会社名'}
             </Text>
-          </View>
-          {logoUrl ? (
-            <Image source={{ uri: logoUrl }} style={styles.logo} resizeMode="contain" />
-          ) : null}
-        </View>
 
-        {/* 氏名＋フリガナ */}
-        <View style={styles.nameArea}>
-          <Text
-            style={styles.name}
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.75}
-          >
-            {name || '氏名'}
-          </Text>
-          {furigana ? (
-            <Text style={styles.furigana} numberOfLines={1} ellipsizeMode="tail">
-              {furigana}
+            <Text style={styles.name}>
+              {name || '氏名'}
             </Text>
-          ) : null}
+
+            {!!furigana && (
+              <Text style={styles.furigana}>
+                {furigana}
+              </Text>
+            )}
+          </View>
+
+          {logoUrl && (
+            <Image
+              source={{ uri: logoUrl }}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          )}
         </View>
 
         <View style={styles.divider} />
 
-        <View style={[styles.contactArea, compact && styles.contactAreaCompact]}>
+        <ScrollView
+          style={styles.contactArea}
+          showsVerticalScrollIndicator={false}
+        >
           {visibleSlots.map((slot) => (
-            <SlotLine key={slot.slot} slot={slot} compact={compact} />
+            <InfoItem
+              key={slot.slot}
+              label={slot.label}
+              value={slot.value}
+            />
           ))}
-        </View>
+        </ScrollView>
       </View>
     </View>
   );
@@ -129,17 +145,38 @@ const styles = StyleSheet.create({
     aspectRatio: 1.65,
     padding: 20,
     justifyContent: 'flex-start',
-    height: 220,
+    height: 320,
     overflow: 'hidden',
   },
-  topRow: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  topTextArea: {
+  headerText: {
     flex: 1,
-    paddingRight: 8,
+    paddingRight: 16,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  infoIcon: {
+    marginTop: 2,
+    marginRight: 10,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 15,
+    color: '#111827',
+    fontWeight: '500',
   },
   company: {
     fontSize: 14,
@@ -149,9 +186,6 @@ const styles = StyleSheet.create({
   logo: {
     width: 40,
     height: 40,
-  },
-  nameArea: {
-    marginTop: 10,
   },
   name: {
     fontSize: 22,
@@ -171,9 +205,6 @@ const styles = StyleSheet.create({
   contactArea: {
     gap: 5,
   },
-  contactAreaCompact: {
-    gap: 2,
-  },
   slotRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -184,16 +215,9 @@ const styles = StyleSheet.create({
     marginRight: 6,
     minWidth: 72,
   },
-  slotLabelCompact: {
-    fontSize: 9,
-    minWidth: 52,
-  },
   slotValue: {
     fontSize: 11,
     color: COLORS.text,
     flexShrink: 1,
-  },
-  slotValueCompact: {
-    fontSize: 9,
   },
 });
