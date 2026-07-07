@@ -23,6 +23,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  Keyboard,
+  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -79,6 +81,7 @@ export const MyCardEditScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { session } = useAuth();
   const userId = session?.user.id;
+  const screenHeight = Dimensions.get('window').height;
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -92,6 +95,9 @@ export const MyCardEditScreen = () => {
 
   const [activeTab, setActiveTab] = useState<MyCardTabKey>('company');
   const fadeAnim = useMemo(() => new Animated.Value(1), []);
+  const [cardMaxHeight, setCardMaxHeight] = useState(
+    screenHeight * 0.52,
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -122,6 +128,36 @@ export const MyCardEditScreen = () => {
       isMounted = false;
     };
   }, [userId]);
+
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      'keyboardDidShow',
+      (e) => {
+        const keyboardHeight = e.endCoordinates.height;
+
+        setCardMaxHeight(
+          Math.max(
+            200,
+            screenHeight - keyboardHeight - 200,
+          ),
+        );
+      },
+    );
+
+    const hide = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setCardMaxHeight(
+          screenHeight * 0.52,
+        );
+      },
+    );
+
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   const handleTabChange = useCallback(
     (tab: MyCardTabKey) => {
@@ -229,7 +265,12 @@ export const MyCardEditScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          showsVerticalScrollIndicator={false}
+        >
           {/* 2. 名刺プレビューエリア */}
           <View style={styles.section}>
             <CardPreview
@@ -237,6 +278,8 @@ export const MyCardEditScreen = () => {
               name={name}
               logoUrl={logoUri}
               customFields={customFields}
+              mode="edit"
+              maxHeight={cardMaxHeight}
             />
           </View>
 
