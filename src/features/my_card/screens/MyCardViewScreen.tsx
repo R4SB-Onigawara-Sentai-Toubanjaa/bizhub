@@ -6,7 +6,14 @@
  * 画面内の「編集」ボタンから MyCardEditScreen へ遷移する。
  */
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,7 +49,9 @@ export const MyCardViewScreen = () => {
   const [company, setCompany] = useState('');
   const [name, setName] = useState('');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [customFields, setCustomFields] = useState<CustomFieldSlot[]>(createInitialCustomFields());
+  const [customFields, setCustomFields] = useState<CustomFieldSlot[]>(
+    createInitialCustomFields(),
+  );
 
   const loadCard = useCallback(async () => {
     if (!userId) {
@@ -73,7 +82,9 @@ export const MyCardViewScreen = () => {
       }
     } catch (e) {
       if (requestId === requestIdRef.current) {
-        setErrorMessage(e instanceof Error ? e.message : '名刺データの読み込みに失敗しました。');
+        setErrorMessage(
+          e instanceof Error ? e.message : '名刺データの読み込みに失敗しました。',
+        );
       }
     } finally {
       if (requestId === requestIdRef.current) {
@@ -90,7 +101,6 @@ export const MyCardViewScreen = () => {
     const unsubscribe = navigation.addListener('focus', () => {
       loadCard();
     });
-
     return unsubscribe;
   }, [navigation, loadCard]);
 
@@ -104,6 +114,7 @@ export const MyCardViewScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* ヘッダー */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -128,8 +139,19 @@ export const MyCardViewScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>
-        <CardPreview company={company} name={name} logoUrl={logoUrl} customFields={customFields} />
+      {/* 名刺エリア：情報量が多い場合は画面スクロールで対応 */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <CardPreview
+          company={company}
+          name={name}
+          logoUrl={logoUrl}
+          customFields={customFields}
+          mode="preview"
+        />
 
         {!company && !name ? (
           <Text style={styles.emptyText}>
@@ -137,8 +159,10 @@ export const MyCardViewScreen = () => {
           </Text>
         ) : null}
 
-        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-      </View>
+        {errorMessage ? (
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        ) : null}
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -150,10 +174,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,
   },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -163,10 +189,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
+
   headerSide: {
     width: 56,
     justifyContent: 'center',
   },
+
   headerTitle: {
     flex: 1,
     fontSize: 17,
@@ -174,23 +202,33 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     textAlign: 'center',
   },
+
   editButton: {
     alignItems: 'flex-end',
   },
+
   editButtonText: {
     fontSize: 15,
     fontWeight: '700',
     color: COLORS.brand,
   },
-  content: {
-    padding: 16,
+
+  scroll: {
+    flex: 1,
   },
+
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+
   emptyText: {
-    marginTop: 16,
+    marginTop: 20,
     fontSize: 13,
     color: COLORS.subText,
     textAlign: 'center',
   },
+
   errorText: {
     marginTop: 16,
     fontSize: 13,
