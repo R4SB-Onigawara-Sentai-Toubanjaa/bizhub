@@ -8,12 +8,14 @@ import { useAuth } from '../../auth/AuthContext';
 import { AccountMenu } from '../../auth/components/AccountMenu';
 import { generateQrToken } from '../api/qrToken';
 import { RootStackParamList } from '../../../navigation/types';
+import { useBLE } from '../hooks/useBLE';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const HomeScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { session, signOut } = useAuth();
+  const { isInitialized, error: bleError } = useBLE();
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [expirationTime, setExpirationTime] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
@@ -78,6 +80,14 @@ export const HomeScreen = () => {
     }
   };
 
+  const handleBluetoothPress = () => {
+    if (bleError) {
+      Alert.alert('BLEエラー', bleError);
+      return;
+    }
+    Alert.alert('BLE状態', isInitialized ? '初期化完了' : '初期化中...');
+  };
+
   return (
     <View style={styles.container}>
       {/* ヘッダー：左上の人物アイコン（押すとアカウントメニューを表示） */}
@@ -96,6 +106,11 @@ export const HomeScreen = () => {
         onViewCard={() => navigation.navigate('MyCardView')}
         onSignOut={handleSignOut}
       />
+
+      {/* ヘッダー：右上のBluetooth交換ボタン */}
+      <View style={styles.headerRight}>
+        <Button title="Bluetooth交換" onPress={handleBluetoothPress} />
+      </View>
 
       <Text style={styles.title}>あなたの名刺QRコード</Text>
 
@@ -126,6 +141,7 @@ export const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { position: 'absolute', top: 50, left: 16 },
+  headerRight: { position: 'absolute', top: 10, right: 10 },
   title: { fontSize: 18, fontWeight: 'bold', marginBottom: 20 },
   qrContainer: { alignItems: 'center', marginVertical: 30, height: 250, justifyContent: 'center' },
   tokenText: { marginTop: 15, color: '#666', fontSize: 16 },

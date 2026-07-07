@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@config-plugins/react-native-ble-plx": "^7.0.0",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "^3.1.1",
     "@react-navigation/bottom-tabs": "^7.18.2",
@@ -14,8 +15,12 @@
     "expo-image-manipulator": "~56.0.19",
     "expo-image-picker": "~56.0.18",
     "expo-status-bar": "~56.0.4",
+    "patch-package": "^8.0.1",
+    "postinstall-postinstall": "^2.1.0",
     "react": "19.2.3",
     "react-native": "0.85.3",
+    "react-native-ble-peripheral": "^2.0.1",
+    "react-native-ble-plx": "^3.5.1",
     "react-native-qrcode-svg": "^6.3.21",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
@@ -30,7 +35,8 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "postinstall": "patch-package"
   },
   "private": true
 }
