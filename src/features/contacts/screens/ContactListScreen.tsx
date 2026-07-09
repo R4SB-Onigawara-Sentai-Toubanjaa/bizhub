@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +15,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { ContactListItem } from "../components/ContactListItem";
 import { fetchContacts } from "../api/contactsApi";
 import { ContactItemData, ContactSortOrder } from "../types";
+import { BusinessCard } from "../../../components/BusinessCard";
 
 export const ContactListScreen = () => {
   const { session } = useAuth();
@@ -23,6 +26,8 @@ export const ContactListScreen = () => {
   const [sortOrder, setSortOrder] = useState<ContactSortOrder>("desc");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedContact, setSelectedContact] =
+    useState<ContactItemData | null>(null);
 
   const loadContacts = useCallback(async () => {
     if (!ownerId) {
@@ -113,7 +118,12 @@ export const ContactListScreen = () => {
       <FlatList
         data={displayData}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ContactListItem contact={item} />}
+        renderItem={({ item }) => (
+          <ContactListItem
+            contact={item}
+            onPress={() => setSelectedContact(item)}
+          />
+        )}
         contentContainerStyle={styles.listContent}
         refreshing={isLoading}
         onRefresh={loadContacts}
@@ -136,6 +146,45 @@ export const ContactListScreen = () => {
           </View>
         }
       />
+
+      <Modal
+        visible={selectedContact !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedContact(null)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setSelectedContact(null)}
+        >
+          <Pressable style={styles.modalContent} onPress={() => {}}>
+            {selectedContact ? (
+              <>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity
+                    onPress={() => setSelectedContact(null)}
+                    style={styles.closeButton}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="close" size={24} color="#111827" />
+                  </TouchableOpacity>
+                </View>
+
+                <BusinessCard
+                  company={selectedContact.displayCompany}
+                  name={selectedContact.displayName}
+                  logoUrl={selectedContact.logoUrl}
+                  details={[
+                    selectedContact.displayTitle || "",
+                    ...selectedContact.contactLines,
+                  ]}
+                  style={styles.expandedCard}
+                />
+              </>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
@@ -225,5 +274,34 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: "#FFFFFF",
     fontWeight: "600",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  modalContent: {
+    width: "100%",
+    maxWidth: 560,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  expandedCard: {
+    width: "100%",
   },
 });
