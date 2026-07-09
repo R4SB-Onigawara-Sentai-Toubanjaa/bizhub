@@ -347,6 +347,12 @@ export const MyCardEditScreen = () => {
               const slot = customFields.find((f) => f.slot === tab.slotNumber);
               if (!slot) return null;
 
+              const usedLabels = new Set(
+                customFields
+                  .filter((f) => f.slot !== slot.slot && f.label !== '')
+                  .map((f) => f.label)
+              );
+
               // 現在選択されている候補を特定（free は label が空文字）
               const selectedCandidate = FIELD_CANDIDATES.find((c) =>
                 c.isFree ? slot.label === '' && slot.value !== '' : c.value === slot.label
@@ -363,25 +369,29 @@ export const MyCardEditScreen = () => {
                       const isSelected = candidate.isFree
                         ? selectedCandidate?.isFree
                         : slot.label === candidate.value;
+
+                      const isDisabled =
+                        !candidate.isFree && usedLabels.has(candidate.value);
+
                       return (
                         <TouchableOpacity
                           key={candidate.label}
                           style={[
                             styles.candidateButton,
                             isSelected ? styles.candidateButtonActive : null,
+                            isDisabled ? styles.candidateButtonDisabled : null,
                           ]}
-                          onPress={() =>
-                            updateSlot(slot.slot, {
-                              label: candidate.value,
-                              // 候補を切り替えた場合は値をリセットしない（入力済みを保持）
-                            })
-                          }
-                          activeOpacity={0.7}
+                          onPress={() => {
+                            if (isDisabled) return; // ← 追加
+                            updateSlot(slot.slot, { label: candidate.value });
+                          }}
+                          activeOpacity={isDisabled ? 1 : 0.7} // ← 変更
                         >
                           <Text
                             style={[
                               styles.candidateButtonText,
                               isSelected ? styles.candidateButtonTextActive : null,
+                              isDisabled ? styles.candidateButtonTextDisabled : null,
                             ]}
                           >
                             {candidate.label}
@@ -522,5 +532,13 @@ const styles = StyleSheet.create({
   },
   candidateButtonTextActive: {
     color: '#FFFFFF',
+  },
+  candidateButtonDisabled: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+    opacity: 0.5,
+  },
+  candidateButtonTextDisabled: {
+    color: COLORS.subText,
   },
 });
