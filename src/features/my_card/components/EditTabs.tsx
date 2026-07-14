@@ -70,7 +70,7 @@ const COLORS = {
 };
 
 /** 固定タブのキー（選択・削除不可） */
-const FIXED_KEYS: MyCardTabKey[] = ['company', 'name', 'image'];
+const FIXED_KEYS: MyCardTabKey[] = ['company', 'name', 'furigana', 'image'];
 
 // ────────────────────────────────────────────────
 // コンポーネント

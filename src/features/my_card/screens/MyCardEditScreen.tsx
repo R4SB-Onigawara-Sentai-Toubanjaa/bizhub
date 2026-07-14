@@ -88,15 +88,18 @@ export const MyCardEditScreen = () => {
     const fixedTabs: MyCardTabDefinition[] = [
       { key: 'company', label: '社名',  slotNumber: null },
       { key: 'name',    label: '氏名',  slotNumber: null },
+      { key: 'furigana', label: 'フリガナ', slotNumber: null },
       { key: 'image',   label: '画像',  slotNumber: null },
     ];
 
-    const slotTabs: MyCardTabDefinition[] = customFields.map((f) => ({
-      key: `slot${f.slot}` as MyCardTabKey,
-      label: f.label !== ''
-        ? (FIELD_CANDIDATES.find((c) => c.value === f.label)?.label ?? f.label)
-        : `要素${f.slot}`,
-      slotNumber: f.slot,
+    const slotTabs: MyCardTabDefinition[] = customFields
+      .filter((f) => f.slot !== FURIGANA_SLOT)  // ← slot 0 を除外
+      .map((f) => ({
+        key: `slot${f.slot}` as MyCardTabKey,
+        label: f.label !== ''
+          ? (FIELD_CANDIDATES.find((c) => c.value === f.label)?.label ?? f.label)
+          : `要素${f.slot}`,
+        slotNumber: f.slot,
     }));
 
     return [...fixedTabs, ...slotTabs];
@@ -384,7 +387,6 @@ export const MyCardEditScreen = () => {
                   onChangeText={setCompany}
                   maxLength={COMPANY_MAX_LENGTH}
                 />
-
                 <Text style={styles.charCount}>
                   {company.length} / {COMPANY_MAX_LENGTH}
                 </Text>
@@ -404,7 +406,11 @@ export const MyCardEditScreen = () => {
                 <Text style={styles.charCount}>
                   {name.length} / {NAME_MAX_LENGTH}
                 </Text>
-
+              </>
+            )}
+            
+            {activeTab === 'furigana' && (
+              <>
                 <FormInput
                   label="フリガナ（任意）"
                   placeholder="ヤマダ タロウ"

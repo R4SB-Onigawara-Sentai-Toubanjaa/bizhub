@@ -19,6 +19,7 @@ export interface CustomFieldSlot {
 export type MyCardTabKey =
   | 'company'
   | 'name'
+  | 'furigana'
   | 'image'
   | 'slot1'
   | 'slot2'
