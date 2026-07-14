@@ -16,6 +16,7 @@ import {
   MyCardUpdatePayload,
   createInitialCustomFields,
 } from '../types';
+import { Platform } from 'react-native';
 
 const TABLE_NAME = 'business_cards';
 const STORAGE_BUCKET = 'card-logos';
@@ -101,21 +102,65 @@ export async function uploadLogoImage(
   fileUri: string,
   contentType: string = 'image/jpeg'
 ): Promise<string> {
-  const response = await fetch(fileUri);
-  const blob = await response.blob();
-  const extension = contentType === 'image/png' ? 'png' : 'jpg';
-  const path = `${userId}/logo_${Date.now()}.${extension}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(path, blob, { contentType, upsert: true });
-
-  if (uploadError) {
-    throw new Error(`ロゴ画像のアップロードに失敗しました: ${uploadError.message}`);
+  // 1. 認証トークンの取得 (既存のまま)
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !sessionData.session) {
+    throw new Error(`認証セッションの取得に失敗しました: ${sessionError?.message ?? '未ログイン'}`);
   }
+  const token = sessionData.session.access_token;
 
-  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  // 2. アップロード用パスとファイル名の決定 (既存のまま)
+  const extension = contentType === 'image/png' ? 'png' : 'jpg';
+  const fileName = `logo_${Date.now()}.${extension}`;
+  const path = `${userId}/${fileName}`;
+
+  // 3. 【修正】React Native のネイティブ層が確実に認識できる FormData 構造
+  // Android等で file:// スキーマの解釈エラーを防ぐため、パスを正規化します
+  const normalizedUri = Platform.OS === 'android' ? fileUri : fileUri.replace('file://', '');
+
+  const formData = new FormData();
+  
+  // React Native の FormDataPart として完全に互換性のあるオブジェクト定義
+  formData.append('file', {
+    uri: fileUri, // expo-image-manipulator等の出力パスをそのまま適用
+    name: fileName,
+    type: contentType,
+  } as any);
+
+  // 4. Supabase プロジェクト URL の解析 (既存のまま)
+  const supabaseUrl = (supabase as any).supabaseUrl;
+  if (!supabaseUrl) {
+    throw new Error('Supabase URL の特定に失敗しました。');
+  }
+  
+  const uploadUrl = `${supabaseUrl}/storage/v1/object/${STORAGE_BUCKET}/${path}`;
+
+  try {
+    // 5. REST API 経由でのダイレクトアップロード (既存のまま)
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ストレージサーバーがエラーを返しました: ${errorText}`);
+    }
+
+    // 6. 公開URLを取得して返す (既存のまま)
+    const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    return urlData.publicUrl;
+
+  } catch (error) {
+    throw new Error(
+      `ロゴ画像のアップロードに失敗しました: ${
+        error instanceof Error ? error.message : 'ネットワークエラー'
+      }`
+    );
+  }
 }
 
 /**
