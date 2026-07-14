@@ -53,7 +53,9 @@ function InfoItem({ label, value }: { label: string; value: string }) {
         style={styles.infoIcon}
       />
       <View style={styles.infoContent}>
-        <Text style={styles.infoLabel}>{label || 'その他'}</Text>
+        <Text style={styles.infoLabel} numberOfLines={1}>
+          {label || 'その他'}
+        </Text>
         <Text style={styles.infoValue} numberOfLines={2}>
           {value}
         </Text>
@@ -154,7 +156,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: COLORS.cardBg,
     borderRadius: 8,
-    padding: 20,
+    padding: 16,
     overflow: 'hidden',
   },
 
@@ -170,32 +172,32 @@ const styles = StyleSheet.create({
   },
 
   company: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '600',
     color: COLORS.subText,
   },
 
   name: {
-    fontSize: 22,
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.text,
   },
 
   furigana: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: COLORS.subText,
     marginTop: 2,
   },
 
   logo: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
   },
 
   divider: {
     height: 1,
     backgroundColor: COLORS.border,
-    marginVertical: 12,
+    marginVertical: 10,
   },
 
   editScroll: {
@@ -207,7 +209,8 @@ const styles = StyleSheet.create({
 
   infoItem: {
     flexDirection: 'row',
-    marginBottom: 14,
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
 
   infoIcon: {
@@ -217,18 +220,24 @@ const styles = StyleSheet.create({
 
   infoContent: {
     flex: 1,
-    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
 
   infoLabel: {
+    width: 72,
     fontSize: 11,
     color: COLORS.subText,
-    marginBottom: 2,
+    fontWeight: '500',
+    paddingRight: 4,
+    marginBottom: 1,
   },
 
   infoValue: {
-    fontSize: 15,
+    flex: 1,
+    fontSize: 13.5,
     fontWeight: '500',
     color: COLORS.text,
+    lineHeight: 18,
   },
 });
