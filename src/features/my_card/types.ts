@@ -89,14 +89,9 @@ export const FIELD_CANDIDATES: FieldCandidate[] = [
 /** フリガナ専用の予約スロット番号（ユーザーが使う1〜10とは別枠） */
 export const FURIGANA_SLOT = 0;
 
-/** 初期状態：スロット0（フリガナ）＋1〜10を生成 */
+/** 初期状態：フリガナ専用スロット（slot 0）のみ。要素スロットはユーザーが＋ボタンで追加する。 */
 export function createInitialCustomFields(): CustomFieldSlot[] {
   return [
     { slot: FURIGANA_SLOT, label: 'フリガナ', value: '' },
-    ...Array.from({ length: 10 }, (_, i) => ({
-      slot: i + 1,
-      label: '',
-      value: '',
-    })),
   ];
 }

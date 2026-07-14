@@ -168,26 +168,32 @@ export async function uploadLogoImage(
  * DBに不正な形式や欠落があっても、UI側は安全に10スロットとして扱える。
  */
 function normalizeCustomFields(raw: unknown): CustomFieldSlot[] {
-  const base = createInitialCustomFields();
   if (!Array.isArray(raw)) {
-    return base;
+    // 名刺未作成ユーザー：フリガナスロットのみの初期状態
+    return createInitialCustomFields();
   }
-
-  const bySlot = new Map<number, CustomFieldSlot>();
+ 
+  const slots: CustomFieldSlot[] = [];
+ 
   raw.forEach((item) => {
     if (
       item &&
       typeof item === 'object' &&
       typeof (item as any).slot === 'number'
     ) {
-      const slot = (item as any).slot as number;
-      bySlot.set(slot, {
-        slot,
+      slots.push({
+        slot: (item as any).slot as number,
         label: typeof (item as any).label === 'string' ? (item as any).label : '',
         value: typeof (item as any).value === 'string' ? (item as any).value : '',
       });
     }
   });
-
-  return base.map((defaultSlot) => bySlot.get(defaultSlot.slot) ?? defaultSlot);
+ 
+  if (slots.length === 0) {
+    // raw が空配列だった場合も初期値へフォールバック
+    return createInitialCustomFields();
+  }
+ 
+  // slot 番号順に並べて返す（slot 0 = フリガナが先頭になる）
+  return slots.sort((a, b) => a.slot - b.slot);
 }

@@ -4,7 +4,7 @@
  * 自分の名刺画面：プレビュー表示 + タブ切替による編集。
  * - ヘッダー：左上に戻るボタン
  * - プレビューエリア：入力値変更時に即時更新
- * - 編集タブエリア：社名・氏名・画像・要素1〜4
+ * - 編集タブエリア：社名・氏名・画像・要素（動的スロット）
  * - 入力フォームエリア：選択中タブに応じて表示
  *
  * NOTE: 認証ユーザーIDの取得方法は features/auth 側の実装に依存するため、
@@ -32,7 +32,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CardPreview from '../components/CardPreview';
-import EditTabs from '../components/EditTabs';
+import EditTabs, { AddCandidateItem } from '../components/EditTabs';
 import FormInput from '../components/FormInput';
 import ImagePickerField from '../components/ImagePickerField';
 import { fetchMyCard, saveMyCard, uploadLogoImage } from '../api/myCardApi';
@@ -61,22 +61,6 @@ const COLORS = {
   danger: '#DC2626',
 };
 
-const TABS: MyCardTabDefinition[] = [
-  { key: 'company', label: '社名',  slotNumber: null },
-  { key: 'name',    label: '氏名',  slotNumber: null },
-  { key: 'image',   label: '画像',  slotNumber: null },
-  { key: 'slot1',   label: '要素1', slotNumber: 1 },
-  { key: 'slot2',   label: '要素2', slotNumber: 2 },
-  { key: 'slot3',   label: '要素3', slotNumber: 3 },
-  { key: 'slot4',   label: '要素4', slotNumber: 4 },
-  { key: 'slot5',   label: '要素5', slotNumber: 5 },
-  { key: 'slot6',   label: '要素6', slotNumber: 6 },
-  { key: 'slot7',   label: '要素7', slotNumber: 7 },
-  { key: 'slot8',   label: '要素8', slotNumber: 8 },
-  { key: 'slot9',   label: '要素9', slotNumber: 9 },
-  { key: 'slot10',  label: '要素10', slotNumber: 10 },
-];
-
 export const MyCardEditScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { session } = useAuth();
@@ -98,6 +82,49 @@ export const MyCardEditScreen = () => {
   const [cardMaxHeight, setCardMaxHeight] = useState(
     screenHeight * 0.52,
   );
+
+  // ── 動的 TABS の導出 ───────────────────────────────────────────────────
+  const TABS = useMemo<MyCardTabDefinition[]>(() => {
+    const fixedTabs: MyCardTabDefinition[] = [
+      { key: 'company', label: '社名',  slotNumber: null },
+      { key: 'name',    label: '氏名',  slotNumber: null },
+      { key: 'image',   label: '画像',  slotNumber: null },
+    ];
+
+    const slotTabs: MyCardTabDefinition[] = customFields.map((f) => ({
+      key: `slot${f.slot}` as MyCardTabKey,
+      label: f.label !== ''
+        ? (FIELD_CANDIDATES.find((c) => c.value === f.label)?.label ?? f.label)
+        : `要素${f.slot}`,
+      slotNumber: f.slot,
+    }));
+
+    return [...fixedTabs, ...slotTabs];
+  }, [customFields]);
+
+  // ── 新規追加スロット候補の導出 ──────────────────────────────────────────
+  /**
+   * まだ使われていない候補（モーダルに表示する追加候補一覧）。
+   * FIELD_CANDIDATES のうち isFree なものと、すでに label として使用済みのものを除外。
+   * フリー入力（isFree）はスロット追加後に手動入力してもらうため除外しない。
+   */
+  const addCandidates = useMemo<AddCandidateItem[]>(() => {
+    const usedLabels = new Set(
+      customFields
+        .filter((f) => f.label !== '')
+        .map((f) => f.label),
+    );
+
+    return FIELD_CANDIDATES
+      .filter((c) => c.isFree || !usedLabels.has(c.value))
+      .map((c) => ({
+        label: c.label,           // 表示名（例：「メールアドレス」）
+        value: c.isFree ? '' : c.value,  // label カラムに入れる値（'' = フリー入力）
+      }));
+  }, [customFields]);
+
+  /** スロットが 10 個に達したら追加不可 */
+  const isAddDisabled = customFields.filter((f) => f.slot !== FURIGANA_SLOT).length >= 10;
 
   useEffect(() => {
     let isMounted = true;
@@ -168,6 +195,55 @@ export const MyCardEditScreen = () => {
       setActiveTab(tab);
     },
     [fadeAnim]
+  );
+
+  // ── スロット削除処理 ───────────────────────────────────────────────────
+  /**
+   * 指定スロット番号を削除し、残ったスロットを 1 始まりで詰め直す。
+   * activeTab が削除対象なら 'company' へリセット。
+   */
+  const handleDeleteSlots = useCallback(
+    (slotNumbers: number[]) => {
+      setCustomFields((prev) => {
+        // slot 0（フリガナ）は削除・番号変更の対象外
+        const furigana = prev.filter((f) => f.slot === FURIGANA_SLOT);
+        const survived = prev
+          .filter((f) => f.slot !== FURIGANA_SLOT && !slotNumbers.includes(f.slot))
+          .map((f, idx) => ({ ...f, slot: idx + 1 })); // 1 始まりで詰め直す
+        return [...furigana, ...survived];
+      });
+  
+      // 削除されたタブがアクティブだったら固定タブへ戻す
+      const activeSlot = TABS.find((t) => t.key === activeTab)?.slotNumber;
+      if (activeSlot !== null && activeSlot !== undefined && slotNumbers.includes(activeSlot)) {
+        setActiveTab('company');
+      }
+    },
+    [activeTab, TABS],
+  );
+
+  // ── スロット追加処理 ───────────────────────────────────────────────────
+  /**
+   * 候補モーダルで選ばれた項目を新しいスロットに追加する。
+   * スロット番号は現在の最大値 + 1（上限は 10）。
+   */
+  const handleAddSlot = useCallback(
+    (candidate: AddCandidateItem) => {
+      if (isAddDisabled) return;
+
+      setCustomFields((prev) => {
+        const nextSlot = prev.length + 1;
+        return [
+          ...prev,
+          {
+            slot: nextSlot,
+            label: candidate.value,  // '' ならフリー入力扱い
+            value: '',
+          },
+        ];
+      });
+    },
+    [isAddDisabled],
   );
 
   const updateSlot = useCallback((slotNumber: number, patch: Partial<CustomFieldSlot>) => {
@@ -285,7 +361,15 @@ export const MyCardEditScreen = () => {
 
           {/* 3. 編集タブエリア */}
           <View style={styles.section}>
-            <EditTabs tabs={TABS} activeTab={activeTab} onChange={handleTabChange} />
+            <EditTabs 
+              tabs={TABS} 
+              activeTab={activeTab} 
+              onChange={handleTabChange} 
+              onDeleteSlots={handleDeleteSlots}
+              onAddSlot={handleAddSlot}
+              addCandidates={addCandidates}
+              isAddDisabled={isAddDisabled}
+            />
           </View>
 
           {/* 4. 入力フォームエリア */}
@@ -382,10 +466,10 @@ export const MyCardEditScreen = () => {
                             isDisabled ? styles.candidateButtonDisabled : null,
                           ]}
                           onPress={() => {
-                            if (isDisabled) return; // ← 追加
+                            if (isDisabled) return;
                             updateSlot(slot.slot, { label: candidate.value });
                           }}
-                          activeOpacity={isDisabled ? 1 : 0.7} // ← 変更
+                          activeOpacity={isDisabled ? 1 : 0.7}
                         >
                           <Text
                             style={[
