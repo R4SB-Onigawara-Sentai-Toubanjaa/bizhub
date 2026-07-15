@@ -139,12 +139,25 @@ export const MyCardViewScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* 名刺エリア：情報量が多い場合は画面スクロールで対応 */}
+      {/* 名刺エリア */}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* 上部：edit モードの名刺（変数名は変更せず配置） */}
+        <View style={styles.editCardWrapper}>
+          <CardPreview
+            company={company}
+            name={name}
+            logoUrl={logoUrl}
+            customFields={customFields}
+            mode="edit"
+            maxHeight={220}
+          />
+        </View>
+
+        {/* 下部：preview モードの名刺 */}
         <CardPreview
           company={company}
           name={name}
@@ -220,6 +233,11 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
+  },
+
+  /* 2つのコンポーネントの間隔を担保するためのスタイル */
+  editCardWrapper: {
+    marginBottom: 24,
   },
 
   emptyText: {
