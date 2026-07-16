@@ -40,52 +40,25 @@ const toSnapshotRecord = (value: unknown): SnapshotRecord | null => {
 };
 
 const buildContactLines = (snapshot: SnapshotRecord | null): string[] => {
-  if (!snapshot) {
-    return [];
-  }
-
-  const lines: string[] = [];
-  const phone = toStringValue(snapshot.phone) || toStringValue(snapshot.tel);
-  const email = toStringValue(snapshot.email);
-  const website =
-    toStringValue(snapshot.website) ||
-    toStringValue(snapshot.url) ||
-    toStringValue(snapshot.web);
-
-  if (phone) {
-    lines.push(phone);
-  }
-  if (email) {
-    lines.push(email);
-  }
-  if (website) {
-    lines.push(website);
-  }
+  if (!snapshot) return [];
 
   const customFields = snapshot.custom_fields;
-  if (Array.isArray(customFields)) {
-    for (const field of customFields) {
-      if (lines.length >= 4) {
-        break;
-      }
+  if (!Array.isArray(customFields)) return [];
 
-      if (!field || typeof field !== "object") {
-        continue;
-      }
-
-      const record = field as SnapshotRecord;
-      const label = toStringValue(record.label);
-      const value = toStringValue(record.value);
-
-      if (!value) {
-        continue;
-      }
-
-      lines.push(label ? `${label}: ${value}` : value);
-    }
-  }
-
-  return lines.slice(0, 4);
+  return customFields
+    .filter((field): field is { slot: number; label: string; value: string } =>
+      field !== null &&
+      typeof field === 'object' &&
+      typeof (field as SnapshotRecord).slot === 'number' &&
+      typeof (field as SnapshotRecord).label === 'string' &&
+      typeof (field as SnapshotRecord).value === 'string' &&
+      (field as SnapshotRecord).slot !== 0 &&
+      ((field as SnapshotRecord).value as string).trim().length > 0
+    )
+    .sort((a, b) => a.slot - b.slot)
+    .map((field) =>
+      field.label.trim() ? `${field.label}  ${field.value}` : field.value
+    );
 };
 
 export const normalizeContact = (row: ContactApiRow): ContactItemData => {

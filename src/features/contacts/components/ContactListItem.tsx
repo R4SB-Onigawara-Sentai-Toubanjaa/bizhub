@@ -19,7 +19,7 @@ export const ContactListItem = ({ contact, onPress }: Props) => {
         company={contact.displayCompany}
         name={contact.displayName}
         logoUrl={contact.logoUrl}
-        details={contact.contactLines}
+        details={contact.contactLines.slice(0, 4)}  // 一覧は上位4件
       />
     </TouchableOpacity>
   );
