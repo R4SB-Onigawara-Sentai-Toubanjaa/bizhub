@@ -9,6 +9,7 @@ import { AccountMenu } from '../../auth/components/AccountMenu';
 import { generateQrToken } from '../api/qrToken';
 import { RootStackParamList } from '../../../navigation/types';
 import { useBLE } from '../hooks/useBLE';
+import { processExchange } from '../api/exchangeCard';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -79,8 +80,11 @@ export const HomeScreen = () => {
     }
   };
 
-  // 変更点2: 通信ロジックの修正
   const handleBluetoothPress = async () => {
+    if (bleError) {
+      Alert.alert('BLEエラー', bleError);
+      return;
+    }
     if (!isInitialized) {
       Alert.alert('準備中', 'Bluetoothの初期化が完了していません。');
       return;
@@ -96,16 +100,37 @@ export const HomeScreen = () => {
     }
 
     try {
-      // 相手が見つかり、相互通信が完了するまで待機（Promise）
+      // 1. BLE通信の実行
       const peerToken = await startExchange(qrToken);
       
-      // 通信成功後、相手のトークンをアラートで表示（※後続機能でここに確認UIを繋ぐ）
+      // 2. 通信完了後、確認ダイアログを表示
       Alert.alert(
-        '通信完了', 
-        `相手の端末を検知しデータを受信しました。\n\nトークン: ${peerToken}\n\n※この後、この情報を用いて相手のプロフィール確認画面を表示します。`
+        '交換相手の確認',
+        '相手の端末から名刺データを受信しました。\n連絡先に追加しますか？',
+        [
+          { 
+            text: 'キャンセル', 
+            style: 'cancel'
+          },
+          { 
+            text: '追加する', 
+            onPress: async () => {
+              if (!session?.user.id) return;
+              try {
+                setLoading(true);
+                // 3. 既存の交換処理APIを実行
+                await processExchange(session.user.id, peerToken);
+                Alert.alert('追加完了', '連絡先に登録しました。');
+              } catch (e: any) {
+                Alert.alert('追加失敗', e.message);
+              } finally {
+                setLoading(false);
+              }
+            }
+          }
+        ]
       );
     } catch (error: any) {
-      // 意図的なキャンセルの場合はエラーアラートを出さない
       if (!error.message.includes('キャンセル')) {
         Alert.alert('通信エラー', error.message);
       }
