@@ -15,14 +15,16 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export const HomeScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { session, signOut } = useAuth();
-  const { isInitialized, error: bleError } = useBLE();
+  
+  // 変更点1: 新しいフックの返り値を受け取る
+  const { isInitialized, isExchanging, startExchange, stopExchange, error: bleError } = useBLE();
+  
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [expirationTime, setExpirationTime] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
 
-  // useEffectの依存配列に含めるためuseCallbackでラップ
   const fetchToken = useCallback(async () => {
     if (!session?.user.id) return;
     setLoading(true);
@@ -37,12 +39,10 @@ export const HomeScreen = () => {
     }
   }, [session?.user.id]);
 
-  // 初回マウント時
   useEffect(() => {
     fetchToken();
   }, [fetchToken]);
 
-  // タイマーおよび自動再生成処理
   useEffect(() => {
     if (!expirationTime) return;
 
@@ -53,14 +53,13 @@ export const HomeScreen = () => {
       const remaining = Math.max(0, Math.floor((expirationTime - now) / 1000));
       setTimeLeft(remaining);
       
-      // 0秒になった瞬間の処理
       if (remaining <= 0) {
-        clearInterval(intervalId); // 通信中の二重リクエストを防止
-        fetchToken();              // 自動再発行を実行
+        clearInterval(intervalId);
+        fetchToken();
       }
     };
 
-    updateTimer(); // 即時実行
+    updateTimer();
     intervalId = setInterval(updateTimer, 1000);
 
     return () => clearInterval(intervalId);
@@ -80,17 +79,41 @@ export const HomeScreen = () => {
     }
   };
 
-  const handleBluetoothPress = () => {
-    if (bleError) {
-      Alert.alert('BLEエラー', bleError);
+  // 変更点2: 通信ロジックの修正
+  const handleBluetoothPress = async () => {
+    if (!isInitialized) {
+      Alert.alert('準備中', 'Bluetoothの初期化が完了していません。');
       return;
     }
-    Alert.alert('BLE状態', isInitialized ? '初期化完了' : '初期化中...');
+    if (!qrToken) {
+      Alert.alert('エラー', '送信するQRコード（トークン）が存在しません。');
+      return;
+    }
+
+    if (isExchanging) {
+      await stopExchange();
+      return;
+    }
+
+    try {
+      // 相手が見つかり、相互通信が完了するまで待機（Promise）
+      const peerToken = await startExchange(qrToken);
+      
+      // 通信成功後、相手のトークンをアラートで表示（※後続機能でここに確認UIを繋ぐ）
+      Alert.alert(
+        '通信完了', 
+        `相手の端末を検知しデータを受信しました。\n\nトークン: ${peerToken}\n\n※この後、この情報を用いて相手のプロフィール確認画面を表示します。`
+      );
+    } catch (error: any) {
+      // 意図的なキャンセルの場合はエラーアラートを出さない
+      if (!error.message.includes('キャンセル')) {
+        Alert.alert('通信エラー', error.message);
+      }
+    }
   };
 
   return (
     <View style={styles.container}>
-      {/* ヘッダー：左上の人物アイコン（押すとアカウントメニューを表示） */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => setIsMenuVisible(true)}
@@ -107,9 +130,13 @@ export const HomeScreen = () => {
         onSignOut={handleSignOut}
       />
 
-      {/* ヘッダー：右上のBluetooth交換ボタン */}
       <View style={styles.headerRight}>
-        <Button title="Bluetooth交換" onPress={handleBluetoothPress} />
+        {/* 変更点3: ボタンの表示と色を状態に応じて変更 */}
+        <Button 
+          title={isExchanging ? "待機中(タップで停止)" : "Bluetooth交換"} 
+          color={isExchanging ? "#e53e3e" : "#2563EB"}
+          onPress={handleBluetoothPress} 
+        />
       </View>
 
       <Text style={styles.title}>あなたの名刺QRコード</Text>
@@ -141,7 +168,7 @@ export const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { position: 'absolute', top: 50, left: 16 },
-  headerRight: { position: 'absolute', top: 10, right: 10 },
+  headerRight: { position: 'absolute', top: 50, right: 10 },
   title: { fontSize: 18, fontWeight: 'bold', marginBottom: 20 },
   qrContainer: { alignItems: 'center', marginVertical: 30, height: 250, justifyContent: 'center' },
   tokenText: { marginTop: 15, color: '#666', fontSize: 16 },

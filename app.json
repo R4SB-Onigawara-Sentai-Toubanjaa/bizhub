@@ -16,14 +16,27 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.bizhub"
+      "bundleIdentifier": "com.anonymous.bizhub",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Bluetoothを使用して近くの端末と名刺情報を交換します。",
+        "NSBluetoothPeripheralUsageDescription": "Bluetoothを使用して名刺情報を周囲に送信します。"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "monochromeImage": "./assets/android-icon-monochrome.png",
+        "permissions": [
+          "android.permission.BLUETOOTH",
+          "android.permission.BLUETOOTH_ADMIN",
+          "android.permission.BLUETOOTH_SCAN",
+          "android.permission.BLUETOOTH_CONNECT",
+          "android.permission.BLUETOOTH_ADVERTISE",
+          "android.permission.ACCESS_FINE_LOCATION",
+          "android.permission.ACCESS_COARSE_LOCATION"
+      ]
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.bizhub"
