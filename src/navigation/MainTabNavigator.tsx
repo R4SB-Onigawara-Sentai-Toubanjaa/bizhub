@@ -21,6 +21,14 @@ export const MainTabNavigator = () => {
         headerShown: false,
         tabBarActiveTintColor: "#3985FF",
         tabBarInactiveTintColor: "#848486",
+        tabBarStyle: {
+          height: 64,
+          paddingTop: 6,
+          paddingBottom: 6,
+        },
+        tabBarLabelStyle: {
+          marginTop: 3,
+        },
         tabBarIcon: ({ color, focused }) => {
           const iconSize = focused ? 36 : 34;
 
