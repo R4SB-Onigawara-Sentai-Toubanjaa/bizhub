@@ -145,19 +145,19 @@ export const MyCardViewScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 上部：edit モードの名刺（変数名は変更せず配置） */}
+        {/* 上部：一覧リスト形式（上位4件） */}
         <View style={styles.editCardWrapper}>
           <CardPreview
             company={company}
             name={name}
             logoUrl={logoUrl}
             customFields={customFields}
-            mode="edit"
+            mode="list"          // edit → list に変更
             maxHeight={220}
           />
         </View>
 
-        {/* 下部：preview モードの名刺 */}
+        {/* 下部：全件表示 */}
         <CardPreview
           company={company}
           name={name}
