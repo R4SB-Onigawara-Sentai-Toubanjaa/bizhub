@@ -1,19 +1,6 @@
-/**
- * src/features/my_card/components/CardPreview.tsx
- *
- * 編集画面・プレビュー画面の共通名刺コンポーネント。
- *
- * mode="edit"
- *   - maxHeight で高さを制限（キーボード対応）
- *   - 名刺内部をスクロール可能
- *
- * mode="preview"
- *   - コンテンツ量に応じて縦に伸びる（aspectRatio なし）
- *   - スクロールは呼び出し元画面が担う
- */
 import React from 'react';
-import { View, Text, Image, StyleSheet, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { BusinessCard } from '../../../components/BusinessCard';
 import { CustomFieldSlot, FURIGANA_SLOT } from '../types';
 
 interface CardPreviewProps {
@@ -21,47 +8,21 @@ interface CardPreviewProps {
   name: string;
   logoUrl: string | null;
   customFields: CustomFieldSlot[];
-  mode?: 'edit' | 'preview';
+  mode?: 'edit' | 'preview' | 'list';
   maxHeight?: number;
 }
 
-const COLORS = {
-  cardBg: '#FFFFFF',
-  text: '#111827',
-  subText: '#6B7280',
-  border: '#D1D5DB',
-};
+/** 全フィールドをラベル付きで返す */
+function toDetailLines(customFields: CustomFieldSlot[]): string[] {
+  return customFields
+    .filter((f) => f.slot !== FURIGANA_SLOT && f.value.trim().length > 0)
+    .sort((a, b) => a.slot - b.slot)
+    .map((f) => (f.label.trim() ? `${f.label}  ${f.value}` : f.value));
+}
 
-const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  '役職名': 'briefcase-outline',
-  'TEL': 'call-outline',
-  'mail': 'mail-outline',
-  '郵便番号': 'mail-open-outline',
-  '住所': 'home-outline',
-  '会社URL': 'globe-outline',
-  'SNSアカウント': 'share-social-outline',
-  '営業時間': 'time-outline',
-};
-
-function InfoItem({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.infoItem}>
-      <Ionicons
-        name={ICONS[label] ?? 'document-text-outline'}
-        size={18}
-        color="#2563EB"
-        style={styles.infoIcon}
-      />
-      <View style={styles.infoContent}>
-        <Text style={styles.infoLabel} numberOfLines={1}>
-          {label || 'その他'}
-        </Text>
-        <Text style={styles.infoValue} numberOfLines={2}>
-          {value}
-        </Text>
-      </View>
-    </View>
-  );
+/** 上位4件のみ */
+function toTopLines(customFields: CustomFieldSlot[]): string[] {
+  return toDetailLines(customFields).slice(0, 4);
 }
 
 export default function CardPreview({
@@ -72,69 +33,52 @@ export default function CardPreview({
   mode = 'edit',
   maxHeight,
 }: CardPreviewProps) {
-  const furigana =
-    customFields.find((f) => f.slot === FURIGANA_SLOT)?.value ?? '';
 
-  const visibleSlots = customFields
-    .filter((f) => f.slot !== FURIGANA_SLOT && f.value.trim().length > 0)
-    .sort((a, b) => a.slot - b.slot);
-
-  const renderHeader = () => (
-    <>
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={styles.company}>{company || '会社名'}</Text>
-          <Text style={styles.name}>{name || '氏名'}</Text>
-          {!!furigana && <Text style={styles.furigana}>{furigana}</Text>}
-        </View>
-        {!!logoUrl && (
-          <Image
-            source={{ uri: logoUrl }}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        )}
-      </View>
-      <View style={styles.divider} />
-    </>
-  );
-
-  const renderFields = () =>
-    visibleSlots.map((slot) => (
-      <InfoItem key={slot.slot} label={slot.label} value={slot.value} />
-    ));
-
-  // ── edit モード ──────────────────────────────────────────
-  if (mode === 'edit') {
+  // ── list モード: 上位4件・スクロールなし（MyCardViewScreen 上部用） ──
+  if (mode === 'list') {
     return (
       <View style={styles.shadowWrap}>
-        <View
-          style={[
-            styles.card,
-            { minHeight: 180, maxHeight: maxHeight ?? undefined },
-          ]}
-        >
-          {renderHeader()}
-          <ScrollView
-            style={styles.editScroll}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.editScrollContent}>{renderFields()}</View>
-          </ScrollView>
-        </View>
+        <BusinessCard
+          company={company}
+          name={name}
+          logoUrl={logoUrl}
+          details={toTopLines(customFields)}
+        />
       </View>
     );
   }
 
-  // ── preview モード ────────────────────────────────────────
-  // コンテンツ量に応じて自然に縦伸びする。スクロールは呼び出し元画面が担う。
+  // ── edit モード: 全件・内部スクロールあり（MyCardEditScreen 用） ──
+  if (mode === 'edit') {
+    return (
+      <View style={[styles.shadowWrap, { maxHeight: maxHeight ?? 320 }]}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+        >
+          <BusinessCard
+            company={company}
+            name={name}
+            logoUrl={logoUrl}
+            details={toDetailLines(customFields)}
+          />
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // ── preview モード: 全件・スクロールなし（MyCardViewScreen 下部用） ──
   return (
     <View style={styles.shadowWrap}>
-      <View style={styles.card}>
-        {renderHeader()}
-        <View>{renderFields()}</View>
-      </View>
+      <BusinessCard
+        company={company}
+        name={name}
+        logoUrl={logoUrl}
+        details={toDetailLines(customFields)}
+      />
     </View>
   );
 }
@@ -144,100 +88,18 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 500,
     alignSelf: 'center',
-    borderRadius: 8,
+    borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 2,
-  },
-
-  card: {
-    width: '100%',
-    backgroundColor: COLORS.cardBg,
-    borderRadius: 8,
-    padding: 16,
     overflow: 'hidden',
   },
-
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  scroll: {
+    borderRadius: 16,
   },
-
-  headerText: {
-    flex: 1,
-    paddingRight: 16,
-  },
-
-  company: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.subText,
-  },
-
-  name: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-
-  furigana: {
-    fontSize: 10.5,
-    color: COLORS.subText,
-    marginTop: 2,
-  },
-
-  logo: {
-    width: 38,
-    height: 38,
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 10,
-  },
-
-  editScroll: {
-    flex: 1,
-  },
-  editScrollContent: {
-    paddingBottom: 8,
-  },
-
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-
-  infoIcon: {
-    marginRight: 10,
-    marginTop: 2,
-  },
-
-  infoContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-
-  infoLabel: {
-    width: 72,
-    fontSize: 11,
-    color: COLORS.subText,
-    fontWeight: '500',
-    paddingRight: 4,
-    marginBottom: 1,
-  },
-
-  infoValue: {
-    flex: 1,
-    fontSize: 13.5,
-    fontWeight: '500',
-    color: COLORS.text,
-    lineHeight: 18,
+  scrollContent: {
+    flexGrow: 1,
   },
 });
