@@ -384,7 +384,11 @@ export const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { 
+    flex: 1, justifyContent: "center",
+    alignItems: "center" ,
+    backgroundColor: "#E5E7EB",
+  },
   header: { position: "absolute", top: 50, left: 16 },
   headerRight: { position: "absolute", top: 50, right: 10 },
   title: { fontSize: 18, fontWeight: "bold", marginBottom: 20 },
