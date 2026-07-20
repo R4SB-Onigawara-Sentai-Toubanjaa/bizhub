@@ -96,9 +96,9 @@ export const MyCardEditScreen = () => {
       .filter((f) => f.slot !== FURIGANA_SLOT)  // ← slot 0 を除外
       .map((f) => ({
         key: `slot${f.slot}` as MyCardTabKey,
-        label: f.label !== ''
-          ? (FIELD_CANDIDATES.find((c) => c.value === f.label)?.label ?? f.label)
-          : `要素${f.slot}`,
+        label: f.isFree
+        ? (f.label || `要素${f.slot}`)
+        : (FIELD_CANDIDATES.find((c) => c.value === f.label)?.label ?? f.label),
         slotNumber: f.slot,
     }));
 
@@ -445,7 +445,9 @@ export const MyCardEditScreen = () => {
 
               // 現在選択されている候補を特定（free は label が空文字）
               const selectedCandidate = FIELD_CANDIDATES.find((c) =>
-                c.isFree ? slot.label === '' && slot.value !== '' : c.value === slot.label
+                c.isFree
+                  ? slot.isFree
+                  : c.value === slot.label
               );
 
               const currentMaxLength = selectedCandidate?.maxLength ?? 50;
@@ -473,7 +475,11 @@ export const MyCardEditScreen = () => {
                           ]}
                           onPress={() => {
                             if (isDisabled) return;
-                            updateSlot(slot.slot, { label: candidate.value });
+
+                            updateSlot(slot.slot, {
+                              label: candidate.value,
+                              isFree: candidate.isFree,
+                            });
                           }}
                           activeOpacity={isDisabled ? 1 : 0.7}
                         >
@@ -492,18 +498,52 @@ export const MyCardEditScreen = () => {
                   </View>
 
                   {/* 値入力欄（候補が選ばれている場合のみ表示） */}
-                  {(slot.label !== '' || selectedCandidate?.isFree) && (
+                  {/* 入力欄 */}
+                  {(slot.label !== '' || slot.isFree) && (
                     <View>
-                      <FormInput
-                        label={slot.label !== '' ? slot.label : 'その他'}
-                        placeholder="値を入力"
-                        value={slot.value}
-                        onChangeText={(text) => updateSlot(slot.slot, { value: text })}
-                        maxLength={currentMaxLength}
-                      />
-                      <Text style={styles.charCount}>
-                        {slot.value.length} / {currentMaxLength}
-                      </Text>
+                      {slot.isFree ? (
+                        <>
+                          <FormInput
+                            label="項目名"
+                            placeholder="例：趣味"
+                            value={slot.label}
+                            onChangeText={(text) =>
+                              updateSlot(slot.slot, { label: text })
+                            }
+                            maxLength={20}
+                          />
+
+                          <FormInput
+                            label="値"
+                            placeholder="例：サッカー"
+                            value={slot.value}
+                            onChangeText={(text) =>
+                              updateSlot(slot.slot, { value: text })
+                            }
+                            maxLength={50}
+                          />
+
+                          <Text style={styles.charCount}>
+                            {slot.value.length} / 50
+                          </Text>
+                        </>
+                      ) : (
+                        <>
+                          <FormInput
+                            label={slot.label}
+                            placeholder="値を入力"
+                            value={slot.value}
+                            onChangeText={(text) =>
+                              updateSlot(slot.slot, { value: text })
+                            }
+                            maxLength={currentMaxLength}
+                          />
+
+                          <Text style={styles.charCount}>
+                            {slot.value.length} / {currentMaxLength}
+                          </Text>
+                        </>
+                      )}
                     </View>
                   )}
                 </View>

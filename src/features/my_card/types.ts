@@ -13,6 +13,7 @@ export interface CustomFieldSlot {
   label: string;
   /** 入力値 */
   value: string;
+  isFree?: boolean; // true の場合 label はユーザーが自由入力する項目名
 }
 
 /** 編集タブの種別（スロット10個に拡張） */
