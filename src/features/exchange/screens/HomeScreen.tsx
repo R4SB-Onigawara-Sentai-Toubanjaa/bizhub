@@ -113,10 +113,15 @@ export const HomeScreen = () => {
     }).start();
   };
 
-  // アニメーション値をY軸回転に変換
-  const rotateY = flipAnimation.interpolate({
+  // アニメーション値をY軸回転に変換（表面・裏面それぞれ用）
+  const frontRotateY = flipAnimation.interpolate({
     inputRange: [0, 180],
     outputRange: ["0deg", "180deg"],
+  });
+
+  const backRotateY = flipAnimation.interpolate({
+    inputRange: [0, 180],
+    outputRange: ["180deg", "360deg"],
   });
 
   const fetchToken = useCallback(async () => {
@@ -323,17 +328,18 @@ export const HomeScreen = () => {
       {/* 名刺カード表示エリア */}
       {myCard && (
         <View style={styles.cardDisplayContainer}>
-          <Animated.View
-            style={[
-              styles.cardWrapper,
-              {
-                transform: [{ rotateY }],
-                backfaceVisibility: "hidden",
-              },
-            ]}
-          >
-            {!isCardFlipped ? (
-              // 表面
+          <View style={styles.cardWrapper}>
+            {/* 表面: 0deg -> 180deg */}
+            <Animated.View
+              style={[
+                styles.cardFace,
+                {
+                  transform: [{ rotateY: frontRotateY }],
+                  backfaceVisibility: "hidden",
+                },
+              ]}
+              pointerEvents={isCardFlipped ? "none" : "auto"}
+            >
               <BusinessCard
                 company={myCard.company}
                 name={myCard.name}
@@ -343,15 +349,24 @@ export const HomeScreen = () => {
                 logoUrl={myCard.logoUrl}
                 style={styles.businessCard}
               />
-            ) : (
-              // 裏面
-              <View style={styles.cardBackside}>
-                <Text style={styles.backText}>名刺情報</Text>
-              </View>
-            )}
-          </Animated.View>
+            </Animated.View>
 
-          {/* フリップ用のタッチエリア（右下角） */}
+            {/* 裏面: 180deg -> 360deg（最初から180度反転させておく） */}
+            <Animated.View
+              style={[
+                styles.cardFace,
+                styles.cardBackside,
+                {
+                  transform: [{ rotateY: backRotateY }],
+                  backfaceVisibility: "hidden",
+                },
+              ]}
+              pointerEvents={isCardFlipped ? "auto" : "none"}
+            >
+              <Text style={styles.backText}>名刺情報</Text>
+            </Animated.View>
+          </View>
+
           <TouchableOpacity
             style={[
               styles.flipTrigger,
@@ -412,13 +427,21 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   cardWrapper: {
-    width: "100%",
-    aspectRatio: 1.7,
+  width: "100%",
+  aspectRatio: 1.9,
+  position: "relative", // 追加: 子(cardFace)を絶対配置で重ねるための基準
+  },
+  cardFace: {
+    position: "absolute", // 追加: 表裏を完全に重ねる
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3},
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 3,
@@ -430,7 +453,7 @@ const styles = StyleSheet.create({
   },
   cardBackside: {
     flex: 1,
-    backgroundColor: "#3e3c3c",
+    backgroundColor: "#adadad",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 12,
@@ -438,7 +461,7 @@ const styles = StyleSheet.create({
   backText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#666",
+    color: "#faf8f8",
   },
   flipTrigger: {
     position: "absolute",
@@ -458,7 +481,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   flipTriggerFlipped: {
-    backgroundColor: "#696969",
+    backgroundColor: "#969494",
   },
   qrCodeBackground: {
     width: 260,
