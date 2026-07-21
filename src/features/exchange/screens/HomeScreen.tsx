@@ -14,7 +14,7 @@ import {
   Animated,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../auth/AuthContext";
@@ -99,9 +99,12 @@ export const HomeScreen = () => {
     }
   }, [session?.user.id]);
 
-  useEffect(() => {
-    loadMyCard();
-  }, [loadMyCard]);
+  // 画面がフォーカスされるたび（自分の名刺画面から戻ってきた時など）に再取得
+  useFocusEffect(
+    useCallback(() => {
+      loadMyCard();
+    }, [loadMyCard])
+  );
 
   // カードをフリップするアニメーション
   const handleCardFlip = () => {
@@ -345,6 +348,7 @@ export const HomeScreen = () => {
                 name={myCard.name}
                 details={myCard.customFields
                   .filter((field) => field.value.trim())
+                  .slice(0, 4) // Home画面のカードは最大4項目まで表示
                   .map((field) => `${field.label}: ${field.value}`)}
                 logoUrl={myCard.logoUrl}
                 style={styles.businessCard}
